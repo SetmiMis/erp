@@ -1,0 +1,1174 @@
+/* Pull Bootstrap into a low-priority cascade layer. Per the CSS cascade
+   layers spec, ANY rule outside a @layer block (i.e. everything below in
+   this file) beats ANY rule inside a named layer, regardless of selector
+   specificity or which stylesheet loaded first. This is what guarantees our
+   .navbar/.card/.btn/... rules always win over Bootstrap's same-named
+   classes — previously they were tied on specificity and Bootstrap's CDN
+   link happened to be injected after globals.css in <head>, so Bootstrap
+   silently won things like `.navbar { position: relative }` overriding our
+   `position: sticky`. @import rules must be the first rules in the file. */
+@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css') layer(bootstrap);
+
+/* ==========================================================================
+   Manufacturing ERP — Premium SaaS Design System (2026)
+   ==========================================================================
+   Everything here restyles EXISTING Bootstrap class names used across every
+   page (.btn, .card, .table, .navbar, .form-control, .badge, .alert,
+   .dropdown-menu, .modal, .collapse, .progress, .spinner-border, ...).
+   No page/component markup, IDs, JS logic, or API calls are touched — this
+   file is the entire "upgrade every page at once" mechanism.
+
+   A handful of NEW opt-in utility classes are added at the bottom
+   (.glass, .skeleton, .status-dot, .pulse-badge, .page-fade-in, .fab) for
+   future use; nothing existing depends on them so their absence changes
+   nothing.
+
+   Table of contents:
+     1. Design tokens (palette, shadows, radius, motion)
+     2. Base / reset / background
+     3. Keyframes
+     4. Navbar
+     5. Layout / page header / footer
+     6. Cards & stat cards
+     7. Buttons
+     8. Forms
+     9. Tables
+    10. Badges & alerts
+    11. Dropdowns, modals, collapse (Bootstrap-JS-driven)
+    12. Progress bars
+    13. Pagination
+    14. Loading states (spinner, skeleton, shimmer)
+    15. Scrollbar
+    16. New opt-in utilities (glass, status dot, FAB, page transition)
+    17. Responsive
+    18. Accessibility (focus-visible, reduced motion)
+    19. Print
+   ========================================================================== */
+
+/* -----------------------------------------------------------------------
+   1. Design tokens
+   ----------------------------------------------------------------------- */
+:root {
+    /* Premium indigo/violet SaaS palette */
+    --primary-color: #4f46e5;
+    --primary-dark: #3730a3;
+    --primary-light: #818cf8;
+    --primary-50: #eef2ff;
+
+    --accent-color: #06b6d4;
+    --accent-violet: #8b5cf6;
+    --accent-pink: #ec4899;
+
+    --secondary-color: #10b981;
+    --secondary-dark: #047857;
+    --secondary-light: #34d399;
+
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
+
+    /* Slate neutrals */
+    --dark-color: #0f172a;
+    --gray-900: #0f172a;
+    --gray-800: #1e293b;
+    --gray-700: #334155;
+    --gray-600: #475569;
+    --gray-500: #64748b;
+    --gray-400: #94a3b8;
+    --gray-300: #cbd5e1;
+    --gray-200: #e2e8f0;
+    --gray-100: #f1f5f9;
+    --gray-50: #f8fafc;
+    --white: #ffffff;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #06b6d4 100%);
+    --gradient-primary-soft: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(139, 92, 246, 0.12));
+    --gradient-mesh:
+        radial-gradient(at 15% 10%, rgba(79, 70, 229, 0.10) 0px, transparent 55%),
+        radial-gradient(at 85% 0%, rgba(139, 92, 246, 0.10) 0px, transparent 50%),
+        radial-gradient(at 90% 85%, rgba(6, 182, 212, 0.08) 0px, transparent 50%),
+        radial-gradient(at 5% 90%, rgba(16, 185, 129, 0.06) 0px, transparent 45%);
+
+    /* Glass surfaces */
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-bg-strong: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-blur: blur(20px) saturate(180%);
+
+    /* Layout */
+    --border-radius: 10px;
+    --border-radius-sm: 7px;
+    --border-radius-lg: 16px;
+    --border-radius-xl: 22px;
+
+    /* Layered, soft shadows */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow: 0 4px 12px rgba(15, 23, 42, 0.06), 0 2px 4px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10), 0 4px 8px rgba(15, 23, 42, 0.04);
+    --shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.14), 0 8px 16px rgba(15, 23, 42, 0.06);
+    --shadow-glow: 0 8px 24px rgba(79, 70, 229, 0.25);
+    --box-shadow-sm: var(--shadow-sm);
+    --box-shadow: var(--shadow);
+    --box-shadow-lg: var(--shadow-lg);
+
+    /* Motion */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --duration-fast: 150ms;
+    --duration-base: 220ms;
+    --duration-slow: 420ms;
+    --transition: all var(--duration-base) var(--ease-out-expo);
+}
+
+/* -----------------------------------------------------------------------
+   2. Base / reset / background
+   ----------------------------------------------------------------------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--gray-800);
+    background-color: var(--gray-50);
+    background-image: var(--gradient-mesh);
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* -----------------------------------------------------------------------
+   3. Keyframes
+   ----------------------------------------------------------------------- */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+@keyframes pulseDot {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+    70%  { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes shakeError {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+
+@keyframes floatSoft {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+}
+
+/* -----------------------------------------------------------------------
+   4. Navbar
+   ----------------------------------------------------------------------- */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background-color: var(--glass-bg-strong) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-sm);
+    padding: 0;
+    border-bottom: 1px solid var(--gray-200);
+    animation: slideDown var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    background: var(--gradient-primary);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+    padding: 14px 20px;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.navbar-brand:hover {
+    animation: gradientShift 3s ease infinite;
+}
+
+.navbar-brand i {
+    -webkit-text-fill-color: var(--primary-color);
+    margin-right: 6px;
+}
+
+.navbar-nav {
+    margin-left: auto;
+}
+
+.navbar-nav .nav-link {
+    color: var(--gray-600);
+    font-weight: 500;
+    padding: 16px 18px !important;
+    transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+    border-bottom: 2px solid transparent;
+    position: relative;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--primary-color);
+    background-color: var(--primary-50);
+}
+
+.navbar-nav .nav-link.active,
+.navbar-nav .nav-link.dropdown-toggle.show {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: var(--primary-50);
+}
+
+.navbar-toggler {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition);
+}
+
+.navbar-toggler:hover {
+    box-shadow: var(--shadow-glow);
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 3px var(--primary-50);
+}
+
+/* -----------------------------------------------------------------------
+   5. Layout / page header / footer
+   ----------------------------------------------------------------------- */
+.container-fluid {
+    padding: 24px;
+}
+
+.page-header {
+    background-color: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    animation: fadeSlideUp var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.page-header h1,
+.page-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--dark-color);
+    margin: 0;
+}
+
+.page-header .breadcrumb {
+    background: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+}
+
+.page-header .breadcrumb-item {
+    color: var(--gray-500);
+    font-size: 13px;
+}
+
+.page-header .breadcrumb-item.active {
+    color: var(--gray-700);
+}
+
+footer {
+    background-color: var(--gray-900);
+    color: var(--gray-400);
+    padding: 24px 0;
+    margin-top: 48px;
+    position: relative;
+}
+
+footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gradient-primary);
+}
+
+footer p { margin: 0; font-size: 13px; }
+
+footer a {
+    color: var(--gray-400);
+    text-decoration: none;
+    transition: color var(--duration-fast) ease;
+}
+
+footer a:hover { color: var(--white); }
+
+/* -----------------------------------------------------------------------
+   6. Cards & stat cards
+   ----------------------------------------------------------------------- */
+.card {
+    background-color: var(--glass-bg-strong);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    transition: transform var(--duration-base) var(--ease-out-expo),
+                box-shadow var(--duration-base) var(--ease-out-expo),
+                border-color var(--duration-base) ease;
+    animation: fadeSlideUp var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-light);
+}
+
+/* Gentle stagger for card grids (dashboard stat rows, list grids, etc.) */
+.row > div:nth-child(1) .card,
+.row > div:nth-child(1).card { animation-delay: 0ms; }
+.row > div:nth-child(2) .card,
+.row > div:nth-child(2).card { animation-delay: 60ms; }
+.row > div:nth-child(3) .card,
+.row > div:nth-child(3).card { animation-delay: 120ms; }
+.row > div:nth-child(4) .card,
+.row > div:nth-child(4).card { animation-delay: 180ms; }
+.row > div:nth-child(5) .card,
+.row > div:nth-child(5).card { animation-delay: 240ms; }
+.row > div:nth-child(6) .card,
+.row > div:nth-child(6).card { animation-delay: 300ms; }
+
+.card-header {
+    background-color: rgba(248, 250, 252, 0.8);
+    border-bottom: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+    padding: 16px 20px;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.card-body { padding: 20px; }
+
+.card-title { font-weight: 700; letter-spacing: -0.01em; }
+
+/* Dashboard Stats Cards */
+.stat-card,
+.card:has(.stat-card-icon) {
+    background-color: var(--glass-bg-strong);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    border-left: 4px solid var(--primary-color);
+    box-shadow: var(--shadow);
+    transition: transform var(--duration-base) var(--ease-spring), box-shadow var(--duration-base) ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: var(--shadow-glow);
+}
+
+.stat-card-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--gradient-primary-soft);
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+    transition: transform var(--duration-base) var(--ease-spring);
+}
+
+.stat-card:hover .stat-card-icon,
+.card:hover .display-4,
+.card:hover .display-1 {
+    transform: scale(1.08) rotate(-2deg);
+}
+
+.stat-card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+.stat-card-value {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--dark-color);
+}
+
+/* -----------------------------------------------------------------------
+   7. Buttons
+   ----------------------------------------------------------------------- */
+.btn {
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: var(--border-radius);
+    transition: transform var(--duration-fast) var(--ease-out-expo),
+                box-shadow var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                border-color var(--duration-fast) ease,
+                filter var(--duration-fast) ease;
+    text-decoration: none;
+    display: inline-block;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* Shimmer sweep on hover (CSS-only "ripple" stand-in — real click-position
+   ripple needs JS; this keeps every button premium-feeling with zero JS). */
+.btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+    transition: transform 0.6s var(--ease-out-expo);
+    pointer-events: none;
+}
+
+.btn:hover::after { transform: translateX(120%); }
+
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0) scale(0.97); }
+
+.btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary-50), 0 0 0 5px rgba(79, 70, 229, 0.35);
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    background-size: 160% 160%;
+    color: var(--white);
+    border-color: transparent;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    filter: brightness(1.06);
+    box-shadow: var(--shadow-glow);
+    color: var(--white);
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: var(--white);
+    border-color: var(--success-color);
+}
+
+.btn-success:hover {
+    background-color: var(--secondary-dark);
+    border-color: var(--secondary-dark);
+    color: var(--white);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.28);
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: var(--white);
+    border-color: var(--warning-color);
+}
+
+.btn-warning:hover { box-shadow: 0 8px 20px rgba(245, 158, 11, 0.28); }
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: var(--white);
+    border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.28);
+    animation: shakeError 0.4s var(--ease-out-expo);
+}
+
+.btn-info {
+    background-color: var(--info-color);
+    color: var(--white);
+    border-color: var(--info-color);
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background: var(--gradient-primary);
+    border-color: transparent;
+    color: var(--white);
+    box-shadow: var(--shadow-glow);
+}
+
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-warning,
+.btn-outline-danger,
+.btn-outline-info {
+    background-color: transparent;
+}
+
+.btn-outline-secondary {
+    color: var(--gray-600);
+    border-color: var(--gray-300);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--gray-100);
+    color: var(--gray-800);
+    border-color: var(--gray-400);
+}
+
+.btn:disabled,
+.btn.disabled {
+    transform: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-sm { padding: 5px 13px; font-size: 13px; }
+.btn-lg { padding: 13px 26px; font-size: 16px; }
+
+.btn-group .btn { border-radius: 0; }
+.btn-group .btn:first-child { border-radius: var(--border-radius) 0 0 var(--border-radius); }
+.btn-group .btn:last-child { border-radius: 0 var(--border-radius) var(--border-radius) 0; }
+.btn-group .btn:hover { transform: translateY(-1px); z-index: 1; }
+
+/* -----------------------------------------------------------------------
+   8. Forms
+   ----------------------------------------------------------------------- */
+.form-label {
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.form-control,
+.form-select {
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 9px 13px;
+    font-size: 14px;
+    transition: border-color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease,
+                transform var(--duration-fast) ease;
+    background-color: var(--white);
+}
+
+.form-control:hover,
+.form-select:hover {
+    border-color: var(--gray-300);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+    outline: none;
+}
+
+.form-control::placeholder { color: var(--gray-400); }
+
+.form-text { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+
+.invalid-feedback {
+    color: var(--danger-color);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.form-control.is-invalid {
+    border-color: var(--danger-color);
+    animation: shakeError 0.4s var(--ease-out-expo);
+}
+
+.form-control.is-valid { border-color: var(--success-color); }
+
+/* Checkboxes / radios / switches (Bootstrap's own .form-check-input) */
+.form-check-input {
+    width: 1.1em;
+    height: 1.1em;
+    border: 1.5px solid var(--gray-300);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.form-check-input:hover { border-color: var(--primary-light); }
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    animation: zoomIn var(--duration-fast) var(--ease-spring);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.form-switch .form-check-input {
+    width: 2.4em;
+    transition: background-position var(--duration-base) ease, background-color var(--duration-base) ease;
+}
+
+/* -----------------------------------------------------------------------
+   9. Tables
+   ----------------------------------------------------------------------- */
+.table {
+    width: 100%;
+    background-color: transparent;
+}
+
+.table thead {
+    background-color: var(--gray-50);
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    color: var(--gray-600);
+    font-weight: 700;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 12px;
+    border-bottom: 2px solid var(--gray-200);
+    background-color: var(--gray-50);
+}
+
+.table tbody tr {
+    border-bottom: 1px solid var(--gray-100);
+    transition: background-color var(--duration-fast) ease, transform var(--duration-fast) ease;
+    animation: fadeIn var(--duration-base) ease both;
+}
+
+.table tbody tr:hover {
+    background-color: var(--primary-50);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--primary-50);
+    transform: scale(1.002);
+}
+
+.table tbody td {
+    padding: 12px;
+    color: var(--gray-700);
+    vertical-align: middle;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--border-radius-lg);
+}
+
+/* -----------------------------------------------------------------------
+   10. Badges & alerts
+   ----------------------------------------------------------------------- */
+.badge {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: transform var(--duration-fast) ease;
+}
+
+.badge.bg-success { background-color: var(--success-color) !important; }
+.badge.bg-warning { background-color: var(--warning-color) !important; }
+.badge.bg-danger  { background-color: var(--danger-color) !important; color: var(--white) !important; }
+.badge.bg-primary { background-color: var(--primary-color) !important; }
+.badge.bg-info    { background-color: var(--info-color) !important; }
+.badge.bg-secondary { background-color: var(--gray-500) !important; }
+
+/* Live/online-style pulse dot, auto-applied to every success badge
+   ("Active", "System Online", "In Stock", ...) with zero markup changes. */
+.badge.bg-success::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffffff;
+    animation: pulseDot 2s ease-in-out infinite;
+}
+
+.alert {
+    padding: 13px 16px;
+    border-radius: var(--border-radius);
+    border: 1px solid transparent;
+    margin-bottom: 16px;
+    animation: slideDown var(--duration-base) var(--ease-out-expo) both;
+}
+
+.alert-success { background-color: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.alert-danger  { background-color: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.alert-warning { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+.alert-info    { background-color: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+/* -----------------------------------------------------------------------
+   11. Dropdowns, modals, collapse — animate Bootstrap's own show/hide classes
+   ----------------------------------------------------------------------- */
+.dropdown-menu {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    padding: 8px;
+    background-color: var(--glass-bg-strong);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+}
+
+.dropdown-menu.show {
+    animation: zoomIn var(--duration-fast) var(--ease-spring) both;
+}
+
+.dropdown-item {
+    color: var(--gray-700);
+    padding: 8px 12px;
+    font-weight: 500;
+    border-radius: var(--border-radius-sm);
+    transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease, transform var(--duration-fast) ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-50);
+    color: var(--primary-color);
+    transform: translateX(2px);
+}
+
+.dropdown-item i { width: 20px; margin-right: 8px; }
+
+.modal-content {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+}
+
+.modal.fade .modal-dialog {
+    transform: scale(0.95) translateY(10px);
+    transition: transform var(--duration-base) var(--ease-out-expo);
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1) translateY(0);
+}
+
+.modal-backdrop.show { opacity: 0.5; }
+
+.modal-header {
+    border-bottom: 1px solid var(--gray-100);
+    padding: 18px 22px;
+}
+
+.modal-body { padding: 22px; }
+
+.collapse.collapsing {
+    transition: height var(--duration-base) var(--ease-out-expo);
+}
+
+.accordion-button {
+    transition: var(--transition);
+    font-weight: 600;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--primary-50);
+    color: var(--primary-color);
+    box-shadow: none;
+}
+
+.accordion-button:focus { box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--gray-500);
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.nav-tabs .nav-link:hover { color: var(--primary-color); }
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: none;
+}
+
+.tab-pane.active { animation: fadeIn var(--duration-base) ease both; }
+
+.tooltip .tooltip-inner {
+    background-color: var(--gray-900);
+    border-radius: var(--border-radius-sm);
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.tooltip.show { animation: fadeIn var(--duration-fast) ease both; }
+
+/* -----------------------------------------------------------------------
+   12. Progress bars
+   ----------------------------------------------------------------------- */
+.progress {
+    height: 8px;
+    border-radius: 999px;
+    background-color: var(--gray-100);
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: var(--gradient-primary);
+    transition: width var(--duration-slow) var(--ease-out-expo);
+}
+
+.progress-bar.bg-success { background: var(--success-color); }
+.progress-bar.bg-warning { background: var(--warning-color); }
+.progress-bar.bg-danger  { background: var(--danger-color); }
+.progress-bar.bg-info    { background: var(--info-color); }
+
+/* -----------------------------------------------------------------------
+   13. Pagination
+   ----------------------------------------------------------------------- */
+.page-link {
+    color: var(--gray-600);
+    border: 1px solid var(--gray-200);
+    transition: var(--transition);
+}
+
+.page-link:hover {
+    background-color: var(--primary-50);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.page-item.active .page-link {
+    background: var(--gradient-primary);
+    border-color: transparent;
+}
+
+/* -----------------------------------------------------------------------
+   14. Loading states
+   ----------------------------------------------------------------------- */
+.spinner-border {
+    width: 22px;
+    height: 22px;
+    border-width: 2.5px;
+    color: var(--primary-color);
+    animation-duration: 0.65s;
+}
+
+/* Opt-in skeleton/shimmer loading placeholder — usage: <div class="skeleton" style="height:1rem;width:60%"></div> */
+.skeleton {
+    position: relative;
+    display: block;
+    border-radius: var(--border-radius-sm);
+    background: linear-gradient(90deg, var(--gray-100) 0px, var(--gray-200) 40px, var(--gray-100) 80px);
+    background-size: 600px 100%;
+    animation: shimmer 1.6s linear infinite;
+}
+
+.skeleton-text { height: 0.9em; width: 100%; margin-bottom: 8px; }
+.skeleton-title { height: 1.4em; width: 40%; margin-bottom: 14px; }
+.skeleton-avatar { width: 40px; height: 40px; border-radius: 50%; }
+
+/* -----------------------------------------------------------------------
+   15. Scrollbar
+   ----------------------------------------------------------------------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--gray-100); }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(var(--gray-400), var(--gray-500));
+    border-radius: 999px;
+    border: 2px solid var(--gray-100);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--primary-color); }
+
+* { scrollbar-width: thin; scrollbar-color: var(--gray-400) var(--gray-100); }
+
+/* -----------------------------------------------------------------------
+   16. New opt-in utilities
+   ----------------------------------------------------------------------- */
+
+/* Glass surface helper for any future element: <div class="glass"> */
+.glass {
+    background-color: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow);
+}
+
+/* Small colored live-status dot: <span class="status-dot status-dot-success"></span> */
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gray-400);
+}
+.status-dot-success { background: var(--success-color); animation: pulseDot 2s ease-in-out infinite; }
+.status-dot-warning { background: var(--warning-color); }
+.status-dot-danger { background: var(--danger-color); }
+
+/* Notification pulse badge: <span class="pulse-badge"></span> absolutely
+   positioned inside a `position:relative` icon wrapper */
+.pulse-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--danger-color);
+    border: 2px solid var(--white);
+    animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+/* Gradient border helper: <div class="gradient-border"> */
+.gradient-border {
+    position: relative;
+    border-radius: var(--border-radius-lg);
+    background: var(--white);
+}
+.gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: var(--gradient-primary);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Floating action button (scroll-to-top etc.) */
+.fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    color: var(--white);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    z-index: 1040;
+    transition: transform var(--duration-fast) var(--ease-spring), box-shadow var(--duration-fast) ease, opacity var(--duration-base) ease;
+}
+
+.fab:hover { transform: translateY(-3px) scale(1.06); box-shadow: var(--shadow-glow); }
+.fab:active { transform: translateY(0) scale(0.95); }
+
+.fab-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+}
+
+/* Page transition wrapper, keyed by route in layout-content.tsx */
+.page-fade-in {
+    animation: fadeSlideUp var(--duration-base) var(--ease-out-expo) both;
+}
+
+/* -----------------------------------------------------------------------
+   17. Responsive
+   ----------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    .container-fluid { padding: 18px; }
+    .page-header { padding: 18px; }
+    .card-body { padding: 16px; }
+}
+
+@media (max-width: 767.98px) {
+    .container-fluid { padding: 14px; }
+
+    .page-header { padding: 16px; border-radius: var(--border-radius); }
+    .page-header h1,
+    .page-header h2 { font-size: 19px; }
+
+    .table { font-size: 13px; }
+    .table thead th, .table tbody td { padding: 9px; }
+
+    .btn { padding: 8px 14px; font-size: 13px; }
+
+    .navbar-nav .nav-link { padding: 12px 16px !important; }
+    .navbar-collapse { background: var(--glass-bg-strong); border-radius: var(--border-radius); margin-top: 8px; padding: 8px; }
+
+    .stat-card, .card { margin-bottom: 14px; }
+
+    .fab { right: 16px; bottom: 16px; width: 42px; height: 42px; }
+
+    /* Every page header ("title on the left, action button/badge on the
+       right") uses Bootstrap's `d-flex justify-content-between` utility —
+       at narrow widths that squeezes both sides together with no room,
+       causing titles to wrap under/behind the right-hand element. Letting
+       it wrap onto its own line fixes this everywhere at once. */
+    .d-flex.justify-content-between {
+        flex-wrap: wrap;
+        row-gap: 10px;
+    }
+
+    .d-flex.justify-content-between > * {
+        max-width: 100%;
+    }
+}
+
+/* Prevent any accidental horizontal overflow on small screens */
+html, body { max-width: 100%; overflow-x: hidden; }
+
+/* -----------------------------------------------------------------------
+   18. Accessibility
+   ----------------------------------------------------------------------- */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* -----------------------------------------------------------------------
+   Login page
+   ----------------------------------------------------------------------- */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--gray-50);
+    background-image: var(--gradient-mesh);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--glass-bg-strong);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-xl);
+    padding: 32px;
+    animation: zoomIn var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.login-card h2 {
+    color: var(--dark-color);
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+/* -----------------------------------------------------------------------
+   Empty state
+   ----------------------------------------------------------------------- */
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    animation: fadeIn var(--duration-slow) ease both;
+}
+
+.empty-state i {
+    font-size: 64px;
+    color: var(--gray-300);
+    margin-bottom: 16px;
+    display: inline-block;
+    animation: floatSoft 3s ease-in-out infinite;
+}
+
+.empty-state h4 { color: var(--gray-700); font-weight: 700; margin-bottom: 8px; }
+.empty-state p { color: var(--gray-500); margin-bottom: 24px; }
+
+/* -----------------------------------------------------------------------
+   19. Print
+   ----------------------------------------------------------------------- */
+@media print {
+    .no-print { display: none !important; }
+    body { background: white; background-image: none; }
+    .card { box-shadow: none !important; border: 1px solid #ddd !important; backdrop-filter: none !important; }
+    .fab, .navbar { display: none !important; }
+}
