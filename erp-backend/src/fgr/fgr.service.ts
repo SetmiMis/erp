@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { FinishedGoodsReceipt } from './fgr.entity';
@@ -19,10 +23,16 @@ export class FgrService {
     private dataSource: DataSource,
   ) {}
 
-  async create(dto: CreateFgrDto, companyId: number): Promise<FinishedGoodsReceipt> {
+  async create(
+    dto: CreateFgrDto,
+    companyId: number,
+  ): Promise<FinishedGoodsReceipt> {
     // Resolve item by code and warehouse by name up front.
     const item = await this.itemsService.findByCode(dto.item_code, companyId);
-    const warehouse = await this.warehousesService.findByName(dto.warehouse_name, companyId);
+    const warehouse = await this.warehousesService.findByName(
+      dto.warehouse_name,
+      companyId,
+    );
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -41,14 +51,23 @@ export class FgrService {
         remarks: dto.remarks ?? undefined,
       } as Partial<FinishedGoodsReceipt>);
 
-      const savedFgr = await queryRunner.manager.save(FinishedGoodsReceipt, fgr);
+      const savedFgr = await queryRunner.manager.save(
+        FinishedGoodsReceipt,
+        fgr,
+      );
 
-      await this.inventoryService.increaseStock(item.id, warehouse.id, dto.quantity, companyId, {
-        reference_type: 'fgr_receipt',
-        reference_id: savedFgr.id,
-        remarks: `FGR ${savedFgr.receipt_number}`,
-        queryRunner,
-      });
+      await this.inventoryService.increaseStock(
+        item.id,
+        warehouse.id,
+        dto.quantity,
+        companyId,
+        {
+          reference_type: 'fgr_receipt',
+          reference_id: savedFgr.id,
+          remarks: `FGR ${savedFgr.receipt_number}`,
+          queryRunner,
+        },
+      );
 
       await queryRunner.commitTransaction();
       return savedFgr;
@@ -68,18 +87,100 @@ export class FgrService {
   }
 
   async findOne(id: number, companyId: number): Promise<FinishedGoodsReceipt> {
-    const rec = await this.repo.findOne({ where: { id, company_id: companyId } });
+    const rec = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!rec) throw new NotFoundException(`FGR #${id} not found`);
     return rec;
   }
 
-  async update(id: number, dto: UpdateFgrDto, companyId: number): Promise<FinishedGoodsReceipt> {
-    // Note: Updating FGR is complex as it requires reversing/adjusting stock.
-    // This is a simplified update. Phase 1 scope: header-only, no stock re-adjustment.
-    await this.findOne(id, companyId); // 404s before preload() if cross-company
-    const rec = await this.repo.preload({ id, ...dto });
-    if (!rec) throw new NotFoundException(`FGR #${id} not found`);
-    return this.repo.save(rec);
+  async update(
+    id: number,
+    dto: UpdateFgrDto,
+    companyId: number,
+  ): Promise<FinishedGoodsReceipt> {
+    // If the item, quantity, or warehouse are changing, the stock this FGR
+    // already added has to be reversed and re-applied — otherwise editing the
+    // quantity silently leaves the old (wrong) increase in place alongside
+    // whatever the new quantity implies. Header-only edits (status, remarks,
+    // etc.) skip all of this and never touch stock, same as before.
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const existing = await queryRunner.manager.findOne(FinishedGoodsReceipt, {
+        where: { id, company_id: companyId },
+      });
+      if (!existing) throw new NotFoundException(`FGR #${id} not found`);
+
+      const stockFieldsChanging =
+        dto.quantity !== undefined ||
+        dto.item_code !== undefined ||
+        dto.warehouse_name !== undefined;
+
+      if (stockFieldsChanging) {
+        const [originalMovement] = await this.inventoryService.reverseMovements(
+          companyId,
+          'fgr_receipt',
+          id,
+          queryRunner,
+        );
+
+        const item = dto.item_code
+          ? await this.itemsService.findByCode(dto.item_code, companyId)
+          : null;
+        const warehouse = dto.warehouse_name
+          ? await this.warehousesService.findByName(
+              dto.warehouse_name,
+              companyId,
+            )
+          : null;
+
+        const itemId = item?.id ?? originalMovement?.item_id;
+        const warehouseId = warehouse?.id ?? originalMovement?.warehouse_id;
+        const quantity =
+          dto.quantity ??
+          (originalMovement ? Number(originalMovement.qty_in) : undefined);
+
+        if (!itemId || !warehouseId || !quantity) {
+          throw new BadRequestException(
+            'Cannot determine item/warehouse/quantity for this FGR update',
+          );
+        }
+
+        await this.inventoryService.increaseStock(
+          itemId,
+          warehouseId,
+          quantity,
+          companyId,
+          {
+            reference_type: 'fgr_receipt',
+            reference_id: id,
+            remarks: `FGR ${existing.receipt_number} (updated)`,
+            queryRunner,
+          },
+        );
+      }
+
+      const merged = queryRunner.manager.merge(FinishedGoodsReceipt, existing, {
+        ...dto,
+        ...(dto.receipt_date
+          ? { receipt_date: new Date(dto.receipt_date) }
+          : {}),
+      });
+      const saved = await queryRunner.manager.save(
+        FinishedGoodsReceipt,
+        merged,
+      );
+
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async remove(id: number, companyId: number): Promise<void> {
@@ -95,8 +196,16 @@ export class FgrService {
       });
       if (!existing) throw new NotFoundException(`FGR #${id} not found`);
 
-      await this.inventoryService.reverseMovements(companyId, 'fgr_receipt', id, queryRunner);
-      await queryRunner.manager.softDelete(FinishedGoodsReceipt, { id, company_id: companyId });
+      await this.inventoryService.reverseMovements(
+        companyId,
+        'fgr_receipt',
+        id,
+        queryRunner,
+      );
+      await queryRunner.manager.softDelete(FinishedGoodsReceipt, {
+        id,
+        company_id: companyId,
+      });
 
       await queryRunner.commitTransaction();
     } catch (err) {

@@ -18,8 +18,8 @@ Legend: `[x]` done · `[ ]` not started.
 - [x] **0.6** Removed dead `quality_check_items` table + duplicate entity files
 - [x] **0.7** Removed unused deps: backend (`mysql2`, `bcryptjs`, `jsonwebtoken`), frontend (`@supabase/supabase-js`, `mysql2`, `gsap`, `animejs`)
 - [x] **0.8** Dispatch/FGR **delete** now reverses its stock movement (`InventoryService.reverseMovements`)
-- [ ] **0.9** Dispatch **update** re-adjusts stock when line quantities change (currently header-only — reverse the old movement via `reverseMovements`, then re-apply the new quantities, same transaction)
-- [ ] **0.10** FGR **update** re-adjusts stock the same way as 0.9
+- [x] **0.9** Dispatch **update** re-adjusts stock when line quantities/warehouse change (reverses the old movement via `reverseMovements`, falls back to the original item/warehouse when the request only changes one of the two, then re-applies)
+- [x] **0.10** FGR **update** re-adjusts stock the same way as 0.9
 - [ ] **0.11** CI workflow (`.github/workflows/test.yml`): on every push/PR, run backend `npm run lint` + `npm run build` + `npm test`, and frontend `npm run build`. Today only a supply-chain attestation workflow exists — nothing currently gates a broken build from merging.
 - [ ] **0.12** Pick one package manager (repo has both `package-lock.json` and `pnpm-lock.yaml` in each app) — delete the unused lockfile, document the choice in each app's README
 - [ ] **0.13** Backend port (`3001`) and its 15m/7d token lifetimes are hardcoded in a few places despite `.env.example` documenting env vars for them — wire `PORT`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` through so `.env.example`'s claims are actually true

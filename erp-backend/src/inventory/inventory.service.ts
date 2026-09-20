@@ -52,7 +52,9 @@ export class InventoryService {
     qr?: QueryRunner,
   ): Promise<StockItem | null> {
     const repo = qr ? qr.manager.getRepository(StockItem) : this.stockItemRepo;
-    return repo.findOne({ where: { item_id, warehouse_id, company_id: companyId } });
+    return repo.findOne({
+      where: { item_id, warehouse_id, company_id: companyId },
+    });
   }
 
   // check availability (throws if not enough)
@@ -86,7 +88,11 @@ export class InventoryService {
     warehouse_id: number,
     delta: number,
     companyId: number,
-    opts: { reference_type: string; reference_id: number | null; remarks: string | null },
+    opts: {
+      reference_type: string;
+      reference_id: number | null;
+      remarks: string | null;
+    },
   ): Promise<{ newQty: number }> {
     const stockRepo = manager.getRepository(StockItem);
     const ledgerRepo = manager.getRepository(StockLedger);
@@ -112,7 +118,12 @@ export class InventoryService {
       row.updated_at = new Date();
       await stockRepo.save(row);
     } else {
-      row = stockRepo.create({ item_id, warehouse_id, company_id: companyId, quantity: newQty });
+      row = stockRepo.create({
+        item_id,
+        warehouse_id,
+        company_id: companyId,
+        quantity: newQty,
+      });
       await stockRepo.save(row);
     }
 
@@ -165,7 +176,14 @@ export class InventoryService {
     // — open and manage our own so the lock+read+write+ledger sequence is
     // still atomic.
     return this.dataSource.transaction((manager) =>
-      this.mutateStock(manager, item_id, warehouse_id, delta, companyId, mutationOpts),
+      this.mutateStock(
+        manager,
+        item_id,
+        warehouse_id,
+        delta,
+        companyId,
+        mutationOpts,
+      ),
     );
   }
 
@@ -204,7 +222,12 @@ export class InventoryService {
   }
 
   // convenience: get balance
-  async getBalance(item_id: number, warehouse_id: number, companyId: number, qr?: QueryRunner) {
+  async getBalance(
+    item_id: number,
+    warehouse_id: number,
+    companyId: number,
+    qr?: QueryRunner,
+  ) {
     const row = await this.findStockRow(item_id, warehouse_id, companyId, qr);
     return row ? Number(row.quantity) : 0;
   }
@@ -212,20 +235,29 @@ export class InventoryService {
   /**
    * Reverses every stock movement previously recorded against
    * (reference_type, reference_id) — e.g. a dispatch order or FGR being
-   * deleted. Without this, removing the header row leaves the stock balance
-   * permanently wrong (decreased/increased with nothing to show for it).
-   * Must be called inside the same transaction as the document's own delete,
-   * via the caller's queryRunner, so a failure rolls back both together.
+   * deleted or edited. Without this, removing/changing the header row leaves
+   * the stock balance permanently wrong (decreased/increased with nothing to
+   * show for it). Must be called inside the same transaction as the
+   * document's own delete/update, via the caller's queryRunner, so a failure
+   * rolls back both together.
+   *
+   * Returns the original (now-reversed) movements so a caller re-applying
+   * new quantities (an update, not a delete) can fall back to the original
+   * item/warehouse when the request didn't change them.
    */
   async reverseMovements(
     companyId: number,
     referenceType: string,
     referenceId: number,
     queryRunner: QueryRunner,
-  ): Promise<void> {
+  ): Promise<StockLedger[]> {
     const ledgerRepo = queryRunner.manager.getRepository(StockLedger);
     const movements = await ledgerRepo.find({
-      where: { company_id: companyId, reference_type: referenceType, reference_id: referenceId },
+      where: {
+        company_id: companyId,
+        reference_type: referenceType,
+        reference_id: referenceId,
+      },
     });
 
     for (const movement of movements) {
@@ -241,10 +273,12 @@ export class InventoryService {
         {
           reference_type: `${referenceType}_reversal`,
           reference_id: referenceId,
-          remarks: `Reversal of ${referenceType} #${referenceId} on delete`,
+          remarks: `Reversal of ${referenceType} #${referenceId}`,
         },
       );
     }
+
+    return movements;
   }
 
   // --- Dashboard & Analytics ---
@@ -281,7 +315,10 @@ export class InventoryService {
       ]);
   }
 
-  async getLowStockItems(companyId: number, limit = 10): Promise<StockDetailRow[]> {
+  async getLowStockItems(
+    companyId: number,
+    limit = 10,
+  ): Promise<StockDetailRow[]> {
     return this.stockDetailsQuery(companyId)
       .andWhere('si.quantity <= item.reorder_level AND item.reorder_level > 0')
       .orderBy('si.quantity', 'ASC')
