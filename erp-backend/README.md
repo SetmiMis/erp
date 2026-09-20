@@ -25,6 +25,8 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+> **Package manager: npm.** Use `npm`, not `pnpm`/`yarn` — `package-lock.json` is the lockfile CI and every install command here rely on. (A stray `pnpm-lock.yaml` used to sit alongside it; removed as of PLAN.md step 0.12.)
+
 ## Project setup
 
 ```bash
