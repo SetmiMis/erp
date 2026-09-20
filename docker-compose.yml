@@ -1,0 +1,62 @@
+name: erp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp
+      POSTGRES_DB: erp
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # See erp-backend/docker/init-schema.sql for why this is needed.
+      - ./erp-backend/docker/init-schema.sql:/docker-entrypoint-initdb.d/init-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U erp -d erp']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./erp-backend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://erp:erp@postgres:5432/erp
+      DB_SSL: 'false'
+      # Every migration hardcodes this schema name -- see
+      # erp-backend/docker/init-schema.sql and PLAN.md step 0.16.
+      DB_SCHEMA: erp_test
+      JWT_SECRET: dev-only-secret-do-not-use-in-production
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./erp-backend:/app
+      - backend-node-modules:/app/node_modules
+
+  frontend:
+    build:
+      context: ./erp-frontend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./erp-frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+volumes:
+  postgres-data:
+  backend-node-modules:
+  frontend-node-modules:

@@ -17,7 +17,22 @@ AUDIT_REPORT.md Architecture/security/code-quality audit of the current codebase
 
 ## Getting started
 
-### Backend
+### Option A: docker compose (fastest — Postgres + backend + frontend, no local Postgres needed)
+
+```bash
+docker compose up --build
+# backend:  http://localhost:3001/api
+# frontend: http://localhost:3000
+```
+
+Hot-reloads both apps (source is bind-mounted). First boot creates the `erp_test`
+Postgres schema every migration currently hardcodes (see `erp-backend/docker/init-schema.sql`
+and PLAN.md step 0.16) and runs migrations automatically. Data persists in the
+`postgres-data` volume across restarts; `docker compose down -v` wipes it for a clean slate.
+
+### Option B: run each app directly
+
+#### Backend
 ```bash
 cd erp-backend
 cp .env.example .env   # fill in DATABASE_URL / JWT_SECRET / etc.
@@ -25,7 +40,7 @@ npm install
 npm run start:dev      # http://localhost:3001/api
 ```
 
-### Frontend
+#### Frontend
 ```bash
 cd erp-frontend
 cp .env.example .env

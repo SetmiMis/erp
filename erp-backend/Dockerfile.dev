@@ -1,0 +1,21 @@
+# Dev-only image: local docker-compose stack (PLAN.md step 0.14), not a
+# production build. Hot-reloads via `nest start --watch` with the source
+# bind-mounted from the host (see docker-compose.yml).
+FROM node:22-alpine
+
+# sqlite3 (the local/offline DB fallback — see app.module.ts) has a native
+# addon that node-gyp needs to compile; alpine's base image has none of
+# this. py3-setuptools is needed too -- node-gyp's bundled gyp still
+# imports distutils, which Python 3.12+ dropped from the stdlib.
+RUN apk add --no-cache python3 py3-setuptools make g++
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start:dev"]
