@@ -26,9 +26,15 @@ import { CompaniesModule } from '../companies/companies.module';
 
         return {
           secret,
+          // This is only the JwtModule-wide default (used if some future
+          // caller signs a token without its own expiresIn). AuthService's
+          // login/refresh flow always passes its own expiresIn, sourced from
+          // JWT_ACCESS_TTL/JWT_REFRESH_TTL — see AuthService and PLAN.md
+          // step 0.13. Default matches AuthService's access-token TTL so
+          // the two don't silently disagree.
           signOptions: {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            expiresIn: (cfg.get<string>('JWT_EXPIRES_IN') ?? '1d') as any,
+            expiresIn: (cfg.get<string>('JWT_ACCESS_TTL') ?? '15m') as any,
           },
         };
       },
@@ -40,6 +46,6 @@ import { CompaniesModule } from '../companies/companies.module';
   providers: [AuthService, JwtStrategy, RefreshStrategy],
   controllers: [AuthController],
   // ✅ Agar kisi aur module me custom Guard lagana ho, toh RefreshStrategy ko bhi export kar sakte hain
-  exports: [AuthService, JwtStrategy, RefreshStrategy, JwtModule], 
+  exports: [AuthService, JwtStrategy, RefreshStrategy, JwtModule],
 })
 export class AuthModule {}

@@ -35,11 +35,18 @@ async function bootstrap() {
   // comma-separated allow-list (e.g. "https://app.example.com,https://admin.example.com");
   // unset, it falls back to the frontend's local dev origins only.
   const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+    ? process.env.CORS_ORIGINS.split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean)
     : ['http://localhost:3000', 'http://127.0.0.1:3000'];
   app.enableCors({ origin: corsOrigins, credentials: true });
 
-  await app.listen(3001);
-  console.log(`🚀 ERP Backend running on: http://localhost:3001/api`);
+  // Audit fix (AUDIT_REPORT.md §3.4 / PLAN.md step 0.13): PORT was hardcoded
+  // here while .env.example documented it as configurable. 3001 stays the
+  // default (matches the frontend's dev fallback in apiClient.ts) but is now
+  // actually overridable.
+  const port = process.env.PORT ? Number(process.env.PORT) : 3001;
+  await app.listen(port);
+  console.log(`🚀 ERP Backend running on: http://localhost:${port}/api`);
 }
 bootstrap();

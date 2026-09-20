@@ -1,5 +1,10 @@
 // erp-backend/src/auth/auth.service.ts
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { CompaniesService } from '../companies/companies.service';
 import * as bcrypt from 'bcrypt';
@@ -10,16 +15,31 @@ import { UserRole, UserStatus } from '../users/enums/user.enum';
 
 @Injectable()
 export class AuthService {
+  // Audit fix (PLAN.md step 0.13): these were hardcoded '15m'/'7d' literals
+  // at every signAsync() call site, while .env.example documented
+  // JWT_EXPIRES_IN as if it controlled them -- it didn't. Now actually
+  // configurable, defaulting to the same values as before.
+  private readonly accessTokenTtl: string;
+  private readonly refreshTokenTtl: string;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly companiesService: CompaniesService,
     private readonly jwtService: JwtService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.accessTokenTtl =
+      this.configService.get<string>('JWT_ACCESS_TTL') ?? '15m';
+    this.refreshTokenTtl =
+      this.configService.get<string>('JWT_REFRESH_TTL') ?? '7d';
+  }
 
   async register(payload: RegisterDto): Promise<Omit<User, 'password_hash'>> {
     const { company_id, username, email, password, full_name } = payload;
     if (!password || password.trim().length < 6) {
-      throw new BadRequestException('Password must be at least 6 characters long.');
+      throw new BadRequestException(
+        'Password must be at least 6 characters long.',
+      );
     }
 
     // 🛠️ Multi-company Phase 1: this endpoint used to bootstrap the very
@@ -49,7 +69,10 @@ export class AuthService {
     return createdUser;
   }
 
-  async validateUser(usernameOrEmail: string, pass: string): Promise<Omit<User, 'password_hash'> | null> {
+  async validateUser(
+    usernameOrEmail: string,
+    pass: string,
+  ): Promise<Omit<User, 'password_hash'> | null> {
     const user = await this.usersService.findOne(usernameOrEmail);
     if (!user) return null;
 
@@ -67,7 +90,7 @@ export class AuthService {
   async login(userPayload: Omit<User, 'password_hash'>) {
     // 1. Database se user ka role detail fetch karein (UsersService ka findById relations ke sath ready hai)
     const userWithRole = await this.usersService.findById(userPayload.id);
-    
+
     // 2. Role ID safely extract karein (User entity me 'roleRelation' naam hai)
     const roleId = userWithRole?.roleRelation?.id || null;
 
@@ -84,8 +107,12 @@ export class AuthService {
       type: 'refresh',
     };
 
-    const accessToken = await this.jwtService.signAsync(accessTokenPayload, { expiresIn: '15m' });
-    const refreshToken = await this.jwtService.signAsync(refreshTokenPayload, { expiresIn: '7d' });
+    const accessToken = await this.jwtService.signAsync(accessTokenPayload, {
+      expiresIn: this.accessTokenTtl,
+    });
+    const refreshToken = await this.jwtService.signAsync(refreshTokenPayload, {
+      expiresIn: this.refreshTokenTtl,
+    });
 
     // Save refresh token hash into DB
     await this.usersService.updateRefreshToken(userPayload.id, refreshToken);
@@ -105,7 +132,10 @@ export class AuthService {
    * 🔹 Optimized Refresh Logic
    */
   async refreshTokens(userId: number, refreshToken: string) {
-    const isTokenValid = await this.usersService.validateRefreshToken(userId, refreshToken);
+    const isTokenValid = await this.usersService.validateRefreshToken(
+      userId,
+      refreshToken,
+    );
     if (!isTokenValid) {
       throw new UnauthorizedException('Access Denied - Invalid Refresh Token');
     }
@@ -123,7 +153,9 @@ export class AuthService {
       type: 'access',
     };
 
-    const newAccessToken = await this.jwtService.signAsync(accessTokenPayload, { expiresIn: '15m' });
+    const newAccessToken = await this.jwtService.signAsync(accessTokenPayload, {
+      expiresIn: this.accessTokenTtl,
+    });
     return { accessToken: newAccessToken };
   }
 
