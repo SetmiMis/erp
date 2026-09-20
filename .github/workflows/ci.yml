@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (lint, build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: erp-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: erp-backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Informational only for now: the codebase has ~440 pre-existing
+      # lint findings (mostly prettier formatting the repo never ran
+      # --fix on, plus a handful of real @typescript-eslint/no-unsafe-*
+      # issues). Gating CI on it today would block every PR on unrelated
+      # debt. See PLAN.md step 0.15 — once that's cleaned up, drop
+      # continue-on-error so this actually gates merges.
+      - name: Lint (non-blocking until PLAN.md 0.15 is done)
+        run: npx eslint "{src,apps,libs,test}/**/*.ts"
+        continue-on-error: true
+
+      - name: Type-check + build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: erp-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: erp-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
