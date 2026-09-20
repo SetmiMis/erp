@@ -83,10 +83,28 @@ export class FgrService {
   }
 
   async remove(id: number, companyId: number): Promise<void> {
-    // Note: A real remove would need to reverse the stock transaction.
-    // Phase 1 scope: not implemented — flagged as a Phase 2 follow-up.
-    const res = await this.repo.softDelete({ id, company_id: companyId });
-    if (res.affected === 0) throw new NotFoundException(`FGR #${id} not found`);
+    // Reverses the stock increase this FGR caused, then soft-deletes the
+    // header — both in one transaction so a failed reversal never leaves the
+    // receipt deleted with stock still inflated.
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const existing = await queryRunner.manager.findOne(FinishedGoodsReceipt, {
+        where: { id, company_id: companyId },
+      });
+      if (!existing) throw new NotFoundException(`FGR #${id} not found`);
+
+      await this.inventoryService.reverseMovements(companyId, 'fgr_receipt', id, queryRunner);
+      await queryRunner.manager.softDelete(FinishedGoodsReceipt, { id, company_id: companyId });
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   count(companyId: number): Promise<number> {

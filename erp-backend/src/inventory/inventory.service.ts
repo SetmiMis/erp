@@ -209,6 +209,44 @@ export class InventoryService {
     return row ? Number(row.quantity) : 0;
   }
 
+  /**
+   * Reverses every stock movement previously recorded against
+   * (reference_type, reference_id) — e.g. a dispatch order or FGR being
+   * deleted. Without this, removing the header row leaves the stock balance
+   * permanently wrong (decreased/increased with nothing to show for it).
+   * Must be called inside the same transaction as the document's own delete,
+   * via the caller's queryRunner, so a failure rolls back both together.
+   */
+  async reverseMovements(
+    companyId: number,
+    referenceType: string,
+    referenceId: number,
+    queryRunner: QueryRunner,
+  ): Promise<void> {
+    const ledgerRepo = queryRunner.manager.getRepository(StockLedger);
+    const movements = await ledgerRepo.find({
+      where: { company_id: companyId, reference_type: referenceType, reference_id: referenceId },
+    });
+
+    for (const movement of movements) {
+      const originalDelta = Number(movement.qty_in) - Number(movement.qty_out);
+      if (originalDelta === 0) continue;
+
+      await this.mutateStock(
+        queryRunner.manager,
+        movement.item_id,
+        movement.warehouse_id,
+        -originalDelta,
+        companyId,
+        {
+          reference_type: `${referenceType}_reversal`,
+          reference_id: referenceId,
+          remarks: `Reversal of ${referenceType} #${referenceId} on delete`,
+        },
+      );
+    }
+  }
+
   // --- Dashboard & Analytics ---
   // StockItem carries no TypeORM relations (just numeric item_id/warehouse_id),
   // so these join against the 'items'/'warehouses' tables directly by id.

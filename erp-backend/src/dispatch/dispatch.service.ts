@@ -95,11 +95,28 @@ export class DispatchService {
   }
 
   async remove(id: number, companyId: number): Promise<void> {
-    // Note: A real-world delete should reverse the stock subtractions (i.e., add the stock back).
-    // Phase 1 scope: not implemented — flagged as a Phase 2 follow-up.
-    const res = await this.repo.delete({ id, company_id: companyId });
-    if (res.affected === 0)
-      throw new NotFoundException(`Dispatch order #${id} not found`);
+    // Reverses the stock decrease this dispatch caused, then deletes the
+    // header — both in one transaction so a failed reversal never leaves the
+    // order deleted with stock still short.
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const existing = await queryRunner.manager.findOne(DispatchOrder, {
+        where: { id, company_id: companyId },
+      });
+      if (!existing) throw new NotFoundException(`Dispatch order #${id} not found`);
+
+      await this.inventoryService.reverseMovements(companyId, 'dispatch', id, queryRunner);
+      await queryRunner.manager.delete(DispatchOrder, { id, company_id: companyId });
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   count(companyId: number): Promise<number> {
