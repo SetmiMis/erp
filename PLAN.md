@@ -4,6 +4,8 @@ Companion to `ROADMAP.md` (the "why" / phases). This is the "how" — one number
 
 Legend: `[x]` done · `[ ]` not started.
 
+**Two tracks run side by side from here on:** Phase 0/1/2/3/4 below are the backend/data track (in strict order). **Phase R** (redesign — visual + UX flows) is a separate track that starts now, in parallel, the way a real product team runs design and engineering concurrently rather than sequentially. The only place they interlock: a page's redesign should reflect a backend fix's new behavior once that fix ships (e.g. Phase R's dispatch/FGR edit screens should surface the stock re-adjustment from steps 0.9/0.10 once those land) — not before.
+
 ---
 
 ## Phase 0 — Stabilization
@@ -22,6 +24,20 @@ Legend: `[x]` done · `[ ]` not started.
 - [ ] **0.12** Pick one package manager (repo has both `package-lock.json` and `pnpm-lock.yaml` in each app) — delete the unused lockfile, document the choice in each app's README
 - [ ] **0.13** Backend port (`3001`) and its 15m/7d token lifetimes are hardcoded in a few places despite `.env.example` documenting env vars for them — wire `PORT`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` through so `.env.example`'s claims are actually true
 - [ ] **0.14** `docker-compose.yml` for local dev (Postgres + backend + frontend) — right now a new contributor has to hand-provision Postgres before `npm run start:dev` works
+
+## Phase R — UI/UX Redesign (parallel track, starts now)
+
+Visual design and UX flows both in scope — not just a coat of paint. Runs module-by-module so each shipped step is a usable, reviewable improvement, not a big-bang rewrite.
+
+- [ ] **R.1** UX audit of the current app — walk every existing page/flow (already-committed history includes past "UI audit" / "UI polish" commits; confirm what's still inconsistent), list concrete pain points: inconsistent empty/loading/error states, unclear navigation, form flows that take too many steps, mobile breakpoints that break. This is the "why" behind every step after it — done before any visual change.
+- [ ] **R.2** Design system foundation — color tokens (light + dark), typography scale, spacing scale, elevation/shadow rules, documented as the single source every page pulls from (build on MUI's theme layer rather than fighting it, since MUI v7 is already the frontend's component library)
+- [ ] **R.3** Core shell redesign — sidebar navigation, top bar, the layout every other page sits inside. Highest-leverage single change since it's visible on every screen.
+- [ ] **R.4** Dashboard redesign — the first thing every user sees after login; apply the design system from R.2 inside the shell from R.3
+- [ ] **R.5** Module-by-module page redesign + UX flow rework, roughly in order of how often a user touches them: Items/current-stock → Purchase Orders/GRN → Production Orders/BOM → Dispatch/FGR → Quality Check → Customers/Suppliers → Reports → Settings/RBAC. Each module's step includes both the visual refresh and any flow simplification found in R.1 for that module.
+- [ ] **R.6** Standardize empty/loading/error states and form validation feedback across every page (a cross-cutting pass after R.5's modules exist, so there's a real pattern to standardize rather than inventing one in the abstract)
+- [ ] **R.7** Mobile/responsive pass — verify and fix breakpoints module by module
+- [ ] **R.8** Accessibility pass — color contrast, keyboard navigation, ARIA labels, focus states
+- [ ] **R.9** Final design-consistency QA across the whole app before calling the redesign done
 
 ## Phase 1 — Core ERP gaps (each bullet is its own step, do in this order)
 
