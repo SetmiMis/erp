@@ -82,20 +82,31 @@ the full ledger chain. Login:
 - **Frontend:** https://erp-manufacturing-frontend.vercel.app (Vercel, project
   `erp-manufacturing-frontend`, team `setmi-india`, auto-deploys on every push
   to `main`).
-- **Backend:** not deployed yet -- the frontend above can't actually log in
-  until it is, since it has no `/api` to call. `render.yaml` at the repo root
-  is a ready-to-use Render Blueprint for this:
-  1. On [Render](https://dashboard.render.com), **New +** → **Blueprint** →
-     connect `SetmiMis/erp`. Render detects `render.yaml` and proposes the
-     `erp-backend` web service from it.
-  2. Before the first deploy, fill in the two secrets `render.yaml` leaves
-     blank (`sync: false`): `DATABASE_URL` (the Supabase connection string
-     from `erp-backend/.env.example`'s Supabase section, password from the
-     Supabase dashboard) and `JWT_SECRET` (any long random string).
-  3. Once live, copy the service's `https://erp-backend-<hash>.onrender.com`
-     URL, set it as `NEXT_PUBLIC_API_URL` (with `/api` appended) in the
-     Vercel project's environment variables, and redeploy the frontend so it
-     points at the real backend instead of failing with no `/api` to call.
+- **Backend:** https://erp-backend-45as.onrender.com/api (Render, service
+  `erp-backend`, free plan, auto-deploys on every push to `main`; DB is the
+  Supabase project above, over its **session pooler**, not the direct host --
+  see the note below). Vercel's `NEXT_PUBLIC_API_URL` points at it, so the
+  frontend can log in for real: verified end-to-end with
+  `admin@demo.com` / `Demo@1234` returning a real JWT.
+
+  `render.yaml` at the repo root is the Blueprint used to create it (Render
+  dashboard → **New +** → **Blueprint** → connect `SetmiMis/erp`; the two
+  secrets it leaves blank, `DATABASE_URL`/`JWT_SECRET`, get filled in on
+  first deploy). Two real deploy failures along the way, both fixed and
+  reflected in `render.yaml`/`.env.example` so a fresh deploy doesn't repeat
+  them:
+  1. `npm ci` was skipping devDependencies (because `NODE_ENV=production` is
+     set for the app at runtime) -- `@nestjs/cli` lives there, so `nest build`
+     failed with `nest: not found`. Fixed with `--include=dev` on the build
+     command plus `NPM_CONFIG_PRODUCTION=false`.
+  2. Supabase's direct host (`db.<ref>.supabase.co`) resolves to IPv6, and
+     Render's network can't reach it (`ENETUNREACH`). Fixed by switching
+     `DATABASE_URL` to the **session pooler** host
+     (`aws-0-<region>.pooler.supabase.com:5432`, username
+     `postgres.<project-ref>`, not just `postgres`) -- see
+     `erp-backend/.env.example`'s Supabase section for the exact string.
+     Use the pooler host by default on any host without confirmed IPv6
+     egress, not just Render.
 
 ## Status
 

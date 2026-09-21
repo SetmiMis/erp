@@ -24,6 +24,12 @@ services:
         value: "false"
       # Render sets PORT itself and injects it -- main.ts already reads
       # process.env.PORT (PLAN.md step 0.13), so nothing to configure here.
+      #
+      # Use the Supabase SESSION POOLER connection string, not the direct
+      # db.<ref>.supabase.co host: that host resolves to IPv6, and Render's
+      # network can't reach it (confirmed live: ENETUNREACH). See
+      # erp-backend/.env.example's Supabase section for the exact pooler
+      # string (different host AND username: postgres.<project-ref>).
       - key: DATABASE_URL
         sync: false
       - key: DB_SSL
