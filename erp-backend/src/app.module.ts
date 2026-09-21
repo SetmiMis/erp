@@ -28,6 +28,7 @@ import { SystemModule } from './system/system.module';
 import { RolesModule } from './rbac/roles/roles.module';
 import { CustomersModule } from './customers/customers.module';
 import { CompaniesModule } from './companies/companies.module';
+import { ensureSchemaExists } from './database/ensure-schema';
 
 @Module({
   imports: [
@@ -51,7 +52,9 @@ import { CompaniesModule } from './companies/companies.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<TypeOrmModuleOptions> => {
         const dbType = configService.get<string>('DB_TYPE') ?? 'postgres';
 
         // 🛠️ Multi-company Phase 1: synchronize is now OFF unconditionally.
@@ -76,43 +79,65 @@ import { CompaniesModule } from './companies/companies.module';
           } as TypeOrmModuleOptions;
         }
 
+        const schema = configService.get<string>('DB_SCHEMA') || undefined;
+        const ssl = configService.get<string>('DB_SSL') === 'true';
+        const sslOptions = ssl ? { rejectUnauthorized: false } : undefined;
+
         // Postgres (Supabase) URL based configuration
         if (configService.get<string>('DATABASE_URL')) {
+          const connectionString = configService.get<string>('DATABASE_URL');
+          // PLAN.md step 0.16: migrations are qualified to `schema` and fail
+          // outright if it doesn't exist yet -- create it before
+          // migrationsRun below gets a chance to run them.
+          await ensureSchemaExists(schema, {
+            connectionString,
+            ssl: sslOptions,
+          });
           return {
             type: 'postgres',
-            url: configService.get<string>('DATABASE_URL'),
+            url: connectionString,
             // Optional: point at an isolated Postgres schema (e.g.
             // DB_SCHEMA=erp_test) instead of "public" — see src/data-source.ts.
-            schema: configService.get<string>('DB_SCHEMA') || undefined,
+            schema,
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
             migrations,
             migrationsRun,
             synchronize: false,
-            ssl: configService.get<string>('DB_SSL') === 'true' || false,
-            extra:
-              configService.get<string>('DB_SSL') === 'true'
-                ? { ssl: { rejectUnauthorized: false } }
-                : undefined,
+            ssl,
+            extra: sslOptions ? { ssl: sslOptions } : undefined,
           } as TypeOrmModuleOptions;
         }
 
         // Standard Postgres configuration block
+        const host = configService.get<string>('DB_HOST');
+        const port = parseInt(
+          configService.get<string>('DB_PORT') ?? '5432',
+          10,
+        );
+        const username = configService.get<string>('DB_USERNAME') ?? 'postgres';
+        const password = configService.get<string>('DB_PASSWORD');
+        const database = configService.get<string>('DB_DATABASE') ?? 'postgres';
+        await ensureSchemaExists(schema, {
+          host,
+          port,
+          user: username,
+          password,
+          database,
+          ssl: sslOptions,
+        });
         return {
           type: 'postgres',
-          host: configService.get<string>('DB_HOST'),
-          port: parseInt(configService.get<string>('DB_PORT') ?? '5432', 10),
-          username: configService.get<string>('DB_USERNAME') ?? 'postgres',
-          password: configService.get<string>('DB_PASSWORD'),
-          database: configService.get<string>('DB_DATABASE') ?? 'postgres',
+          host,
+          port,
+          username,
+          password,
+          database,
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           migrations,
           migrationsRun,
           synchronize: false,
-          ssl: configService.get<string>('DB_SSL') === 'true' || false,
-          extra:
-            configService.get<string>('DB_SSL') === 'true'
-              ? { ssl: { rejectUnauthorized: false } }
-              : undefined,
+          ssl,
+          extra: sslOptions ? { ssl: sslOptions } : undefined,
         };
       },
     }),

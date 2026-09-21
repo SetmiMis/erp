@@ -26,8 +26,9 @@ docker compose up --build
 ```
 
 Hot-reloads both apps (source is bind-mounted). First boot creates the `erp_test`
-Postgres schema every migration currently hardcodes (see `erp-backend/docker/init-schema.sql`
-and PLAN.md step 0.16) and runs migrations automatically. Data persists in the
+Postgres schema every migration is qualified to (see `erp-backend/src/database/ensure-schema.ts`
+and PLAN.md step 0.16 — the backend does this itself now, against any Postgres,
+not just docker-compose's) and runs migrations automatically. Data persists in the
 `postgres-data` volume across restarts; `docker compose down -v` wipes it for a clean slate.
 
 ### Option B: run each app directly
