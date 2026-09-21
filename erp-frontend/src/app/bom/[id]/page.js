@@ -8,6 +8,12 @@ export default function BOMDetailPage() {
   const { id } = useParams();
   const [bom, setBom] = useState(null);
   const [itemsById, setItemsById] = useState({});
+  // Cost rollup (PLAN.md step 1.4): fetched separately from /bom/:id/cost
+  // rather than folded into the BOM's own payload, so a BOM detail view
+  // still renders (components, version, status) even if the cost lookup
+  // fails for some reason -- a display page shouldn't 500 just because the
+  // cost sidebar can't compute.
+  const [costData, setCostData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Load BOM detail + items (to resolve item_id -> name/sku for display)
@@ -32,6 +38,19 @@ export default function BOMDetailPage() {
     };
     if (id) fetchBom();
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    apiClient
+      .get(`/bom/${id}/cost`)
+      .then(setCostData)
+      .catch((err) => console.error("Error loading BOM cost:", err));
+  }, [id]);
+
+  const costByItemId = {};
+  (costData?.components ?? []).forEach((c) => {
+    costByItemId[c.item_id] = c;
+  });
 
   if (loading) return <div className="container py-5">Loading...</div>;
   if (!bom) return <div className="container py-5">❌ BOM not found</div>;
@@ -79,6 +98,15 @@ export default function BOMDetailPage() {
               <strong>Created At:</strong>
               <p>{new Date(bom.created_at).toLocaleDateString()}</p>
             </div>
+            <div className="col-md-4 mb-3">
+              <strong>Rolled-up Cost:</strong>
+              <p className="fs-5 fw-bold text-success mb-0">
+                {costData ? `₹${Number(costData.total_cost).toFixed(2)}` : "—"}
+              </p>
+              <small className="text-muted">
+                Sum of each component&apos;s qty × current purchase rate
+              </small>
+            </div>
           </div>
         </div>
       </div>
@@ -97,20 +125,41 @@ export default function BOMDetailPage() {
                     <th>Item Code</th>
                     <th>Item Name</th>
                     <th>Quantity</th>
+                    <th className="text-end">Unit Cost</th>
+                    <th className="text-end">Line Cost</th>
                   </tr>
                 </thead>
                 <tbody>
                   {bom.items.map((comp) => {
                     const item = itemsById[comp.item_id];
+                    const cost = costByItemId[comp.item_id];
                     return (
                       <tr key={comp.id}>
                         <td>{item?.sku ?? comp.item_id}</td>
                         <td>{item?.name ?? "-"}</td>
                         <td>{comp.qty}</td>
+                        <td className="text-end">
+                          {cost ? `₹${Number(cost.unit_cost).toFixed(2)}` : "—"}
+                        </td>
+                        <td className="text-end">
+                          {cost ? `₹${Number(cost.line_cost).toFixed(2)}` : "—"}
+                        </td>
                       </tr>
                     );
                   })}
                 </tbody>
+                {costData && (
+                  <tfoot>
+                    <tr className="table-light fw-bold">
+                      <td colSpan={4} className="text-end">
+                        Total Cost
+                      </td>
+                      <td className="text-end">
+                        ₹{Number(costData.total_cost).toFixed(2)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           ) : (

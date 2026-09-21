@@ -209,4 +209,68 @@ export class BomService {
     // Optional chaining (?) का उपयोग करना ज्यादा सुरक्षित है
     return !!(res && res.affected && res.affected > 0);
   }
+
+  /**
+   * PLAN.md step 1.4: a finished item's cost, rolled up from its BOM's
+   * component quantities x each component's current `items.purchase_rate`.
+   * Deliberately re-priced from the live item rate on every call rather
+   * than a cached/stored cost -- a component's purchase_rate changing
+   * should be reflected immediately, not require someone to re-save every
+   * BOM that uses it.
+   */
+  async getCostRollup(bomId: number, companyId: number) {
+    const bom = await this.findOne(bomId, companyId);
+
+    const rows = await this.bomItemRepo
+      .createQueryBuilder('bi')
+      .innerJoin('items', 'item', 'item.id = bi.item_id')
+      .where('bi.bom_id = :bomId', { bomId })
+      .select([
+        'bi.item_id AS item_id',
+        'bi.qty AS qty',
+        'item.name AS item_name',
+        'item.sku AS item_code',
+        'item.purchase_rate AS unit_cost',
+      ])
+      .getRawMany<{
+        item_id: number;
+        qty: string;
+        item_name: string;
+        item_code: string | null;
+        unit_cost: string;
+      }>();
+
+    const components = rows.map((r) => {
+      const qty = Number(r.qty);
+      const unit_cost = Number(r.unit_cost);
+      return {
+        item_id: r.item_id,
+        item_name: r.item_name,
+        item_code: r.item_code,
+        qty,
+        unit_cost,
+        line_cost: qty * unit_cost,
+      };
+    });
+
+    return {
+      bom_id: bom.id,
+      fg_item_id: bom.fg_item_id,
+      version: bom.version,
+      is_active: bom.is_active,
+      total_cost: components.reduce((sum, c) => sum + c.line_cost, 0),
+      components,
+    };
+  }
+
+  /** Cost rollup for whichever BOM is currently active for a finished item. */
+  async getActiveCostForItem(fgItemId: number, companyId: number) {
+    const activeBom = await this.bomRepo.findOne({
+      where: { company_id: companyId, fg_item_id: fgItemId, is_active: true },
+    });
+    if (!activeBom) {
+      throw new NotFoundException(`No active BOM found for item #${fgItemId}`);
+    }
+    return this.getCostRollup(activeBom.id, companyId);
+  }
 }

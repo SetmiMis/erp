@@ -31,8 +31,29 @@ export class BomController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.bomService.findOne(id, companyId);
+  }
+
+  @Get(':id/cost')
+  getCostRollup(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
+    return this.bomService.getCostRollup(id, companyId);
+  }
+
+  // Distinct path shape from GET /bom/:id/cost above (4 segments vs 3), so
+  // there's no route-matching ambiguity between "a BOM id" and "item".
+  @Get('item/:itemId/cost')
+  getActiveCostForItem(
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @CompanyId() companyId: number,
+  ) {
+    return this.bomService.getActiveCostForItem(itemId, companyId);
   }
 
   @Put(':id')
@@ -45,7 +66,10 @@ export class BomController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.bomService.remove(id, companyId);
   }
 }
