@@ -31,7 +31,10 @@ export class FgrController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.findOne(id, companyId);
   }
 
@@ -45,7 +48,10 @@ export class FgrController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.remove(id, companyId);
   }
 }

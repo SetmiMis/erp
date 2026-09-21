@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enums/user.enum';
+import { AuthenticatedRequest } from '../auth/types/authenticated-request';
 
 @Controller('companies')
 export class CompaniesController {
@@ -46,7 +47,10 @@ export class CompaniesController {
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
-  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     this.assertOwnCompanyOrSuperadmin(req, id);
     return this.companiesService.findOne(id);
   }
@@ -57,13 +61,16 @@ export class CompaniesController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCompanyDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     this.assertOwnCompanyOrSuperadmin(req, id);
     return this.companiesService.update(id, dto);
   }
 
-  private assertOwnCompanyOrSuperadmin(req: any, targetCompanyId: number) {
+  private assertOwnCompanyOrSuperadmin(
+    req: AuthenticatedRequest,
+    targetCompanyId: number,
+  ) {
     const { role, companyId } = req.user;
     if (role !== UserRole.SUPERADMIN && companyId !== targetCompanyId) {
       throw new ForbiddenException("Cannot access another company's record.");

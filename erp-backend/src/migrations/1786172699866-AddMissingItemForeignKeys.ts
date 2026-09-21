@@ -21,7 +21,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * Postgres now rejects an invalid item_id even though the ORM doesn't
  * model the relation.
  */
-export class AddMissingItemForeignKeys1786172699866 implements MigrationInterface {
+export class AddMissingItemForeignKeys1786172699866
+  implements MigrationInterface
+{
   name = 'AddMissingItemForeignKeys1786172699866';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -44,7 +46,9 @@ export class AddMissingItemForeignKeys1786172699866 implements MigrationInterfac
     await queryRunner.query(
       `ALTER TABLE "erp_test"."production_order_items" DROP CONSTRAINT "FK_production_order_items_item_id"`,
     );
-    await queryRunner.query(`DROP INDEX "erp_test"."IDX_production_order_items_item_id"`);
+    await queryRunner.query(
+      `DROP INDEX "erp_test"."IDX_production_order_items_item_id"`,
+    );
 
     await queryRunner.query(
       `ALTER TABLE "erp_test"."bom_items" DROP CONSTRAINT "FK_bom_items_item_id"`,

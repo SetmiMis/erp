@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, IsNull, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, IsNull, Repository } from 'typeorm';
 
 import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -35,9 +35,7 @@ export class RolesService {
     });
 
     if (exists) {
-      throw new ConflictException(
-        'Role with same name already exists.',
-      );
+      throw new ConflictException('Role with same name already exists.');
     }
 
     const entity = this.repo.create({ ...dto, company_id: companyId });
@@ -54,7 +52,10 @@ export class RolesService {
     },
   ): Promise<Role[]> {
     // Visible = this company's own custom roles + every shared system role.
-    const scopes: any[] = [{ company_id: companyId }, { company_id: IsNull() }];
+    const scopes: FindOptionsWhere<Role>[] = [
+      { company_id: companyId },
+      { company_id: IsNull() },
+    ];
     const where = params?.search
       ? scopes.map((s) => ({ ...s, name: ILike(`%${params.search}%`) }))
       : scopes;
@@ -99,15 +100,14 @@ export class RolesService {
     // (system) rows are deliberately excluded, not just found-then-blocked,
     // so a system role 404s here rather than leaking its existence via a
     // ForbiddenException.
-    const role = await this.repo.findOne({ where: { id, company_id: companyId } });
+    const role = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!role) {
       throw new NotFoundException('Role not found.');
     }
 
-    if (
-      dto.name &&
-      dto.name.toLowerCase() !== role.name.toLowerCase()
-    ) {
+    if (dto.name && dto.name.toLowerCase() !== role.name.toLowerCase()) {
       const exists = await this.repo.findOne({
         where: [
           { name: ILike(dto.name), company_id: companyId },
@@ -116,9 +116,7 @@ export class RolesService {
       });
 
       if (exists) {
-        throw new ConflictException(
-          'Role name already exists.',
-        );
+        throw new ConflictException('Role name already exists.');
       }
     }
 
@@ -128,15 +126,15 @@ export class RolesService {
   }
 
   async remove(id: number, companyId: number): Promise<void> {
-    const role = await this.repo.findOne({ where: { id, company_id: companyId } });
+    const role = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!role) {
       throw new NotFoundException('Role not found.');
     }
 
     if (role.is_system) {
-      throw new ForbiddenException(
-        'System roles cannot be deleted.',
-      );
+      throw new ForbiddenException('System roles cannot be deleted.');
     }
 
     const result = await this.repo.softDelete({ id, company_id: companyId });
@@ -147,6 +145,8 @@ export class RolesService {
   }
 
   async count(companyId: number): Promise<number> {
-    return this.repo.count({ where: [{ company_id: companyId }, { company_id: IsNull() }] });
+    return this.repo.count({
+      where: [{ company_id: companyId }, { company_id: IsNull() }],
+    });
   }
 }

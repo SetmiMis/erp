@@ -43,7 +43,10 @@ export class ItemsService {
       throw new ConflictException('Item with same SKU or name already exists.');
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const entity = this.repo.create({ ...dto, company_id: companyId } as any) as unknown as Item;
+    const entity = this.repo.create({
+      ...dto,
+      company_id: companyId,
+    } as any) as unknown as Item;
     return this.repo.save(entity);
   }
 
@@ -84,7 +87,9 @@ export class ItemsService {
   }
 
   async findOne(id: number, companyId: number): Promise<Item> {
-    const item = await this.repo.findOne({ where: { id, company_id: companyId } });
+    const item = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!item) throw new NotFoundException('Item not found.');
     return item;
   }
@@ -94,17 +99,28 @@ export class ItemsService {
    * only know the item's code, not its numeric id.
    */
   async findByCode(code: string, companyId: number): Promise<Item> {
-    const item = await this.repo.findOne({ where: { sku: code, company_id: companyId } });
-    if (!item) throw new NotFoundException(`Item with code "${code}" not found.`);
+    const item = await this.repo.findOne({
+      where: { sku: code, company_id: companyId },
+    });
+    if (!item)
+      throw new NotFoundException(`Item with code "${code}" not found.`);
     return item;
   }
 
-  async update(id: number, dto: UpdateItemDto, companyId: number): Promise<Item> {
-    const item = await this.repo.findOne({ where: { id, company_id: companyId } });
+  async update(
+    id: number,
+    dto: UpdateItemDto,
+    companyId: number,
+  ): Promise<Item> {
+    const item = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!item) throw new NotFoundException('Item not found.');
 
     if (dto.sku && dto.sku !== item.sku) {
-      const skuExists = await this.repo.findOne({ where: { sku: dto.sku, company_id: companyId } });
+      const skuExists = await this.repo.findOne({
+        where: { sku: dto.sku, company_id: companyId },
+      });
       if (skuExists) throw new ConflictException('SKU already in use.');
     }
 

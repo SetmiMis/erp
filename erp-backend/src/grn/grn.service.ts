@@ -67,7 +67,7 @@ export class GrnService {
       const savedGrn = await queryRunner.manager.save(Grn, grn);
 
       const grnItems: GrnItem[] = dto.items.map((i) => {
-        const item = items.find((it) => it.id === i.item_id)!;
+        const item = items.find((it) => it.id === i.item_id);
         return this.grnItemRepo.create({
           grn: savedGrn,
           item,
@@ -99,7 +99,7 @@ export class GrnService {
 
       return this.grnRepo.findOne({
         where: { id: savedGrn.id },
-      }) as Promise<Grn>;
+      });
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;
@@ -128,13 +128,17 @@ export class GrnService {
   }
 
   async findOne(id: number, companyId: number): Promise<Grn> {
-    const grn = await this.grnRepo.findOne({ where: { id, company_id: companyId } });
+    const grn = await this.grnRepo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!grn) throw new NotFoundException('GRN not found.');
     return grn;
   }
 
   async update(id: number, dto: UpdateGrnDto, companyId: number): Promise<Grn> {
-    const grn = await this.grnRepo.findOne({ where: { id, company_id: companyId } });
+    const grn = await this.grnRepo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!grn) throw new NotFoundException('GRN not found.');
 
     if (dto.warehouse_id) {

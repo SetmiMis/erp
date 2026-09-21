@@ -60,7 +60,10 @@ export class ItemsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.findOne(id, companyId);
   }
 
@@ -76,7 +79,10 @@ export class ItemsController {
 
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.remove(id, companyId);
   }
 }

@@ -4,9 +4,13 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { FindOptionsWhere, Repository, ILike } from 'typeorm';
 import { Supplier } from './supplier.entity';
-import { CreateSupplierDto, QuerySupplierDto } from './dto/create-supplier.dto';
+import {
+  CreateSupplierDto,
+  QuerySupplierDto,
+  SupplierStatus,
+} from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 
 // Multi-company Phase 1: every method takes companyId and every query is
@@ -46,12 +50,13 @@ export class SuppliersService {
     return this.repo.save(entity);
   }
 
-  async findAll(query: QuerySupplierDto, companyId: number): Promise<Supplier[]> {
-    const where: any = { company_id: companyId };
+  async findAll(
+    query: QuerySupplierDto,
+    companyId: number,
+  ): Promise<Supplier[]> {
+    const where: FindOptionsWhere<Supplier> = { company_id: companyId };
 
-    if (query.status)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-enum-comparison
-      where.is_active = query.status === 'active' ? true : false;
+    if (query.status) where.is_active = query.status === SupplierStatus.ACTIVE;
 
     if (query.search) {
       return this.repo.find({
@@ -72,13 +77,21 @@ export class SuppliersService {
   }
 
   async findOne(id: number, companyId: number): Promise<Supplier> {
-    const supplier = await this.repo.findOne({ where: { id, company_id: companyId } });
+    const supplier = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!supplier) throw new NotFoundException('Supplier not found');
     return supplier;
   }
 
-  async update(id: number, dto: UpdateSupplierDto, companyId: number): Promise<Supplier> {
-    const existing = await this.repo.findOne({ where: { id, company_id: companyId } });
+  async update(
+    id: number,
+    dto: UpdateSupplierDto,
+    companyId: number,
+  ): Promise<Supplier> {
+    const existing = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!existing) throw new NotFoundException('Supplier not found');
 
     if (dto.email && dto.email !== existing.email) {

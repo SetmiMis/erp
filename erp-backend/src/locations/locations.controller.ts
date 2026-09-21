@@ -36,7 +36,10 @@ export class LocationsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.locationsService.findOne(id, companyId);
   }
 
@@ -50,7 +53,10 @@ export class LocationsController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.locationsService.remove(id, companyId);
   }
 }

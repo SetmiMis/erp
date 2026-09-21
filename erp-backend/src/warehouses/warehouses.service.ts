@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { FindOptionsWhere, Repository, ILike } from 'typeorm';
 import { Warehouse } from './warehouse.entity';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
@@ -61,10 +61,9 @@ export class WarehousesService {
     companyId: number,
     params?: { status?: string; search?: string },
   ): Promise<Warehouse[]> {
-    const where: any = { company_id: companyId };
+    const where: FindOptionsWhere<Warehouse> = { company_id: companyId };
 
     if (params?.status) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       where.is_active = params.status === 'active';
     }
 
@@ -96,17 +95,27 @@ export class WarehousesService {
    * DTOs carry a warehouse_name string instead of a numeric warehouse_id.
    */
   async findByName(name: string, companyId: number): Promise<Warehouse> {
-    const w = await this.repo.findOne({ where: { name, company_id: companyId } });
+    const w = await this.repo.findOne({
+      where: { name, company_id: companyId },
+    });
     if (!w) throw new NotFoundException(`Warehouse "${name}" not found.`);
     return w;
   }
 
-  async update(id: number, dto: UpdateWarehouseDto, companyId: number): Promise<Warehouse> {
-    const existing = await this.repo.findOne({ where: { id, company_id: companyId } });
+  async update(
+    id: number,
+    dto: UpdateWarehouseDto,
+    companyId: number,
+  ): Promise<Warehouse> {
+    const existing = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!existing) throw new NotFoundException('Warehouse not found.');
 
     if (dto.code && dto.code !== existing.code) {
-      const codeExists = await this.repo.findOne({ where: { code: dto.code, company_id: companyId } });
+      const codeExists = await this.repo.findOne({
+        where: { code: dto.code, company_id: companyId },
+      });
       if (codeExists) throw new ConflictException('Code already in use.');
     }
 

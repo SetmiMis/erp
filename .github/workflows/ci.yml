@@ -24,15 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Informational only for now: the codebase has ~440 pre-existing
-      # lint findings (mostly prettier formatting the repo never ran
-      # --fix on, plus a handful of real @typescript-eslint/no-unsafe-*
-      # issues). Gating CI on it today would block every PR on unrelated
-      # debt. See PLAN.md step 0.15 — once that's cleaned up, drop
-      # continue-on-error so this actually gates merges.
-      - name: Lint (non-blocking until PLAN.md 0.15 is done)
+      - name: Lint
         run: npx eslint "{src,apps,libs,test}/**/*.ts"
-        continue-on-error: true
 
       - name: Type-check + build
         run: npm run build

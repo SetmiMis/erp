@@ -1,5 +1,10 @@
 // erp-backend/src/common/decorators/company-id.decorator.ts
-import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { AuthenticatedRequest } from '../../auth/types/authenticated-request';
 
 /**
  * Multi-company Phase 1 tenant boundary. Pulls the authenticated request's
@@ -17,7 +22,7 @@ import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@
  */
 export const CompanyId = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): number => {
-    const request = ctx.switchToHttp().getRequest();
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     const companyId: number | undefined = request.user?.companyId;
 
     if (companyId === undefined || companyId === null) {

@@ -13,7 +13,9 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * were also silently registered in ORM metadata alongside the real
  * `QualityCheck` entity, both mapped to the same `quality_checks` table name.
  */
-export class DropDeadQualityCheckItemsTable1786172699865 implements MigrationInterface {
+export class DropDeadQualityCheckItemsTable1786172699865
+  implements MigrationInterface
+{
   name = 'DropDeadQualityCheckItemsTable1786172699865';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

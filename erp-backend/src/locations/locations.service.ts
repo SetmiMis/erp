@@ -92,7 +92,11 @@ export class LocationsService {
   }
 
   // ✅ FIX: update method ko theek kiya gaya hai
-  async update(id: number, dto: UpdateLocationDto, companyId: number): Promise<Location> {
+  async update(
+    id: number,
+    dto: UpdateLocationDto,
+    companyId: number,
+  ): Promise<Location> {
     // Company check first — preload() below doesn't take a compound where, so
     // confirm the row belongs to this company before touching it.
     await this.findOne(id, companyId);

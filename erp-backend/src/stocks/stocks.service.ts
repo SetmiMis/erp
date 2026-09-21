@@ -82,15 +82,25 @@ export class StocksService {
     });
   }
 
-  async findByWarehouse(warehouse_name: string, companyId: number): Promise<Stock[]> {
+  async findByWarehouse(
+    warehouse_name: string,
+    companyId: number,
+  ): Promise<Stock[]> {
     return this.repo.find({
-      where: { warehouse_name: Like(`%${warehouse_name}%`), company_id: companyId },
+      where: {
+        warehouse_name: Like(`%${warehouse_name}%`),
+        company_id: companyId,
+      },
       relations: ['item'],
       order: { item_name: 'ASC' },
     });
   }
 
-  async findOne(itemId: number, warehouse_name: string, companyId: number): Promise<Stock> {
+  async findOne(
+    itemId: number,
+    warehouse_name: string,
+    companyId: number,
+  ): Promise<Stock> {
     const stock = await this.repo.findOne({
       where: { item: { id: itemId }, warehouse_name, company_id: companyId },
       relations: ['item'],
@@ -127,7 +137,9 @@ export class StocksService {
       .createQueryBuilder('stock')
       .leftJoinAndSelect('stock.item', 'item')
       .where('stock.company_id = :companyId', { companyId })
-      .andWhere('stock.quantity <= item.reorder_level AND item.reorder_level > 0')
+      .andWhere(
+        'stock.quantity <= item.reorder_level AND item.reorder_level > 0',
+      )
       .orderBy('stock.quantity', 'ASC')
       .take(10)
       .getMany();

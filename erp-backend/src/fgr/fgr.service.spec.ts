@@ -6,6 +6,7 @@ import { FinishedGoodsReceipt } from './fgr.entity';
 import { ItemsService } from '../items/items.service';
 import { WarehousesService } from '../warehouses/warehouses.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { CreateFgrDto } from './dto/create-fgr.dto';
 
 // Regression test for the Phase 1 fix: FgrService.create() used to call
 // this.stocksService['itemsService'].findByCode(...), a property that never
@@ -26,15 +27,20 @@ describe('FgrService', () => {
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
     manager: {
-      create: jest.fn((_entity, data) => ({ id: 1, ...data })),
-      save: jest.fn((_entity, data) => Promise.resolve(data)),
+      create: jest.fn((_entity: unknown, data: object) => ({
+        id: 1,
+        ...data,
+      })),
+      save: jest.fn((_entity: unknown, data: unknown) => Promise.resolve(data)),
     },
   };
 
   beforeEach(async () => {
     itemsService = { findByCode: jest.fn() };
     warehousesService = { findByName: jest.fn() };
-    inventoryService = { increaseStock: jest.fn().mockResolvedValue({ newQty: 15 }) };
+    inventoryService = {
+      increaseStock: jest.fn().mockResolvedValue({ newQty: 15 }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -60,7 +66,10 @@ describe('FgrService', () => {
 
   it('resolves item/warehouse and increases stock via InventoryService (no crash)', async () => {
     itemsService.findByCode.mockResolvedValue({ id: 30, sku: 'FG-001' });
-    warehousesService.findByName.mockResolvedValue({ id: 40, name: 'FG Store' });
+    warehousesService.findByName.mockResolvedValue({
+      id: 40,
+      name: 'FG Store',
+    });
 
     const dto = {
       receipt_number: 'FGR-001',
@@ -71,18 +80,27 @@ describe('FgrService', () => {
       uom: 'PCS',
       warehouse_name: 'FG Store',
       receipt_date: '2026-01-01',
-    } as any;
+    } as CreateFgrDto;
 
     const result = await service.create(dto, TEST_COMPANY_ID);
 
-    expect(itemsService.findByCode).toHaveBeenCalledWith('FG-001', TEST_COMPANY_ID);
-    expect(warehousesService.findByName).toHaveBeenCalledWith('FG Store', TEST_COMPANY_ID);
+    expect(itemsService.findByCode).toHaveBeenCalledWith(
+      'FG-001',
+      TEST_COMPANY_ID,
+    );
+    expect(warehousesService.findByName).toHaveBeenCalledWith(
+      'FG Store',
+      TEST_COMPANY_ID,
+    );
     expect(inventoryService.increaseStock).toHaveBeenCalledWith(
       30,
       40,
       10,
       TEST_COMPANY_ID,
-      expect.objectContaining({ reference_type: 'fgr_receipt', queryRunner: mockQueryRunner }),
+      expect.objectContaining({
+        reference_type: 'fgr_receipt',
+        queryRunner: mockQueryRunner,
+      }),
     );
     expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
     expect(result).toBeDefined();

@@ -26,7 +26,10 @@ export class ProductionController {
 
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Post()
-  async create(@Body() dto: CreateProductionOrderDto, @CompanyId() companyId: number) {
+  async create(
+    @Body() dto: CreateProductionOrderDto,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.create(dto, companyId);
   }
 
@@ -36,7 +39,10 @@ export class ProductionController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.findOne(id, companyId);
   }
 
@@ -52,7 +58,10 @@ export class ProductionController {
 
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Put(':id/start')
-  async start(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  async start(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.start(id, companyId);
   }
 
@@ -68,13 +77,19 @@ export class ProductionController {
 
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Put(':id/cancel')
-  async cancel(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  async cancel(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.cancel(id, companyId);
   }
 
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     await this.service.remove(id, companyId);
     return { success: true };
   }

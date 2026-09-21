@@ -6,6 +6,7 @@ import { DispatchOrder } from './dispatch.entity';
 import { ItemsService } from '../items/items.service';
 import { WarehousesService } from '../warehouses/warehouses.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { CreateDispatchDto } from './dto/create-dispatch.dto';
 
 // Regression test for the Phase 1 fix: DispatchService.create() used to reach
 // into StocksService for a nonexistent `itemsService` property
@@ -30,8 +31,11 @@ describe('DispatchService', () => {
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
     manager: {
-      create: jest.fn((_entity, data) => ({ id: 1, ...data })),
-      save: jest.fn((_entity, data) => Promise.resolve(data)),
+      create: jest.fn((_entity: unknown, data: object) => ({
+        id: 1,
+        ...data,
+      })),
+      save: jest.fn((_entity: unknown, data: unknown) => Promise.resolve(data)),
     },
   };
 
@@ -77,19 +81,34 @@ describe('DispatchService', () => {
       warehouse_name: 'Main WH',
       dispatch_date: '2026-01-01',
       items: [{ item_code: 'ITEM-001', dispatched_qty: 5 }],
-    } as any;
+    } as CreateDispatchDto;
 
     const result = await service.create(dto, TEST_COMPANY_ID);
 
-    expect(warehousesService.findByName).toHaveBeenCalledWith('Main WH', TEST_COMPANY_ID);
-    expect(itemsService.findByCode).toHaveBeenCalledWith('ITEM-001', TEST_COMPANY_ID);
-    expect(inventoryService.checkAvailability).toHaveBeenCalledWith(20, 10, 5, TEST_COMPANY_ID, mockQueryRunner);
+    expect(warehousesService.findByName).toHaveBeenCalledWith(
+      'Main WH',
+      TEST_COMPANY_ID,
+    );
+    expect(itemsService.findByCode).toHaveBeenCalledWith(
+      'ITEM-001',
+      TEST_COMPANY_ID,
+    );
+    expect(inventoryService.checkAvailability).toHaveBeenCalledWith(
+      20,
+      10,
+      5,
+      TEST_COMPANY_ID,
+      mockQueryRunner,
+    );
     expect(inventoryService.decreaseStock).toHaveBeenCalledWith(
       20,
       10,
       5,
       TEST_COMPANY_ID,
-      expect.objectContaining({ reference_type: 'dispatch', queryRunner: mockQueryRunner }),
+      expect.objectContaining({
+        reference_type: 'dispatch',
+        queryRunner: mockQueryRunner,
+      }),
     );
     expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
     expect(result).toBeDefined();
@@ -98,7 +117,9 @@ describe('DispatchService', () => {
   it('rolls back the transaction if stock is insufficient', async () => {
     warehousesService.findByName.mockResolvedValue({ id: 10, name: 'Main WH' });
     itemsService.findByCode.mockResolvedValue({ id: 20, sku: 'ITEM-001' });
-    inventoryService.checkAvailability.mockRejectedValue(new Error('Insufficient stock'));
+    inventoryService.checkAvailability.mockRejectedValue(
+      new Error('Insufficient stock'),
+    );
 
     const dto = {
       dispatch_number: 'DISP-002',
@@ -106,9 +127,11 @@ describe('DispatchService', () => {
       warehouse_name: 'Main WH',
       dispatch_date: '2026-01-01',
       items: [{ item_code: 'ITEM-001', dispatched_qty: 999 }],
-    } as any;
+    } as CreateDispatchDto;
 
-    await expect(service.create(dto, TEST_COMPANY_ID)).rejects.toThrow('Insufficient stock');
+    await expect(service.create(dto, TEST_COMPANY_ID)).rejects.toThrow(
+      'Insufficient stock',
+    );
     expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
     expect(mockQueryRunner.release).toHaveBeenCalled();
   });

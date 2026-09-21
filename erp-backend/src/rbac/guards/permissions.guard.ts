@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator'; // Custom decorator key ka standard reference
+import { AuthenticatedRequest } from '../../auth/types/authenticated-request';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -24,11 +25,13 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user; // ⚡ ZERO-DB CALL OVERHEAD: Strategy has already pre-populated this array live!
 
     if (!user) {
-      throw new ForbiddenException('User session context not found or unauthorized.');
+      throw new ForbiddenException(
+        'User session context not found or unauthorized.',
+      );
     }
 
     const userPermissions: string[] = user.permissions || [];
@@ -39,7 +42,9 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!hasPermission) {
-      throw new ForbiddenException('Access Denied - Insufficient structural access rights');
+      throw new ForbiddenException(
+        'Access Denied - Insufficient structural access rights',
+      );
     }
 
     return true;

@@ -43,7 +43,6 @@ export class UsersService {
     const newUser = repo.create(payload);
     const savedUser = await repo.save(newUser);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password_hash, ...result } = savedUser;
     return result;
   }
@@ -70,7 +69,10 @@ export class UsersService {
    * another company's numeric user id — always passes companyId to scope
    * the lookup (see Multi-Company Architecture Audit §11).
    */
-  async findById(id: number, companyId?: number): Promise<Omit<User, 'password_hash'>> {
+  async findById(
+    id: number,
+    companyId?: number,
+  ): Promise<Omit<User, 'password_hash'>> {
     const user = await this.usersRepository.findOne({
       where: companyId !== undefined ? { id, company_id: companyId } : { id },
       relations: ['roleRelation'], // 🚀 RBAC: User profile fetch karte waqt dynamic role metadata dikhega
@@ -78,7 +80,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const { password_hash, ...safeUser } = user;
     return safeUser;
   }
@@ -103,7 +105,7 @@ export class UsersService {
         last_login: true,
         created_at: true,
         updated_at: true,
-      }
+      },
     });
   }
 
@@ -117,12 +119,19 @@ export class UsersService {
   /**
    * User ko update karta hai (Dynamic DTO / Partial support ke sath).
    */
-  async updateUser(id: number, updates: Partial<User>, companyId: number): Promise<any> {
+  async updateUser(
+    id: number,
+    updates: Partial<User>,
+    companyId: number,
+  ): Promise<any> {
     // Security check: Password update karne se rokein is function se
-    delete (updates as any).password_hash;
+    delete updates.password_hash;
     // Also never let a generic update move a user to a different company.
-    delete (updates as any).company_id;
-    const result = await this.usersRepository.update({ id, company_id: companyId }, updates);
+    delete updates.company_id;
+    const result = await this.usersRepository.update(
+      { id, company_id: companyId },
+      updates,
+    );
     if (!result.affected) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -133,7 +142,10 @@ export class UsersService {
    * User ko delete karta hai (Hard delete ki jagah Soft Delete).
    */
   async deleteById(id: number, companyId: number): Promise<void> {
-    const result = await this.usersRepository.softDelete({ id, company_id: companyId });
+    const result = await this.usersRepository.softDelete({
+      id,
+      company_id: companyId,
+    });
     if (result.affected === 0) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -153,7 +165,7 @@ export class UsersService {
    * Code Hardening: Type casting (as any) ko clean kiya kyuki structure updated hai.
    */
   async updateRefreshToken(userId: number, refreshToken: string | null) {
-    let hash = null;
+    let hash: string | null = null;
     if (refreshToken) {
       hash = await bcrypt.hash(refreshToken, 10);
     }
@@ -164,7 +176,10 @@ export class UsersService {
    * 🔹 P0 - Refresh Token Match/Validate Logic
    * Code Hardening: Strict Type Safety implementations.
    */
-  async validateRefreshToken(userId: number, refreshToken: string): Promise<boolean> {
+  async validateRefreshToken(
+    userId: number,
+    refreshToken: string,
+  ): Promise<boolean> {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user || !user.refresh_token_hash) {
       return false;

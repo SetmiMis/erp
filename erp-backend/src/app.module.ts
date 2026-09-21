@@ -10,7 +10,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
-import { DashboardModule } from './dashboard/dashboard.module'; 
+import { DashboardModule } from './dashboard/dashboard.module';
 import { ItemsModule } from './items/items.module';
 import { WarehousesModule } from './warehouses/warehouses.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
@@ -67,7 +67,8 @@ import { CompaniesModule } from './companies/companies.module';
         if (dbType === 'sqlite') {
           return {
             type: 'sqlite',
-            database: configService.get<string>('DB_DATABASE') ?? 'data/sqlite.db',
+            database:
+              configService.get<string>('DB_DATABASE') ?? 'data/sqlite.db',
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
             migrations,
             migrationsRun,

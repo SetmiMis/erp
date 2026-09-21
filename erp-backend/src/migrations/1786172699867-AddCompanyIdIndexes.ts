@@ -48,7 +48,9 @@ export class AddCompanyIdIndexes1786172699867 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     for (const table of [...this.tables].reverse()) {
-      await queryRunner.query(`DROP INDEX "erp_test"."${this.indexName(table)}"`);
+      await queryRunner.query(
+        `DROP INDEX "erp_test"."${this.indexName(table)}"`,
+      );
     }
   }
 }

@@ -20,11 +20,14 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
     });
   }
 
-  validate(req: Request, payload: any) {
+  validate(
+    req: Request,
+    payload: { sub: number; type: string },
+  ): { id: number; refreshToken: string } {
     if (payload.type !== 'refresh') {
       throw new UnauthorizedException('Invalid token type');
     }
-    const refreshToken = req.body.refreshToken;
+    const refreshToken = (req.body as { refreshToken: string }).refreshToken;
     return { id: payload.sub, refreshToken };
   }
 }

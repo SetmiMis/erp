@@ -20,7 +20,10 @@ export class ReportsController {
     @Query('export') exportType?: string,
   ) {
     const filters = { status, supplierId, from, to };
-    const data = await this.reportsService.getPurchaseReport(filters, companyId);
+    const data = await this.reportsService.getPurchaseReport(
+      filters,
+      companyId,
+    );
 
     if (exportType) {
       const columns = [
@@ -116,7 +119,10 @@ export class ReportsController {
     @Query('export') exportType?: string,
   ) {
     const filters = { customer, from, to };
-    const data = await this.reportsService.getDispatchReport(filters, companyId);
+    const data = await this.reportsService.getDispatchReport(
+      filters,
+      companyId,
+    );
 
     if (exportType) {
       const columns = [

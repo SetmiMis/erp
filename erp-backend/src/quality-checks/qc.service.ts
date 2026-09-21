@@ -34,7 +34,10 @@ export class QualityCheckService {
     return `QC-${String(next).padStart(6, '0')}`;
   }
 
-  async create(dto: CreateQualityCheckDto, companyId: number): Promise<QualityCheck> {
+  async create(
+    dto: CreateQualityCheckDto,
+    companyId: number,
+  ): Promise<QualityCheck> {
     const grn = await this.grnRepo.findOne({
       where: { id: dto.grn_id, company_id: companyId },
       relations: ['items'],
@@ -81,7 +84,7 @@ export class QualityCheckService {
 
       // Create QC items and update grn_item.qc_checked_qty
       for (const it of dto.items) {
-        const grnItem = grnItemMap.get(it.grn_item_id)!;
+        const grnItem = grnItemMap.get(it.grn_item_id);
         const item = grnItem.item;
         const qcItem = this.qcItemRepo.create({
           quality_check: savedQc,
@@ -100,9 +103,9 @@ export class QualityCheckService {
       }
 
       await queryRunner.commitTransaction();
-      return (await this.qcRepo.findOne({
+      return await this.qcRepo.findOne({
         where: { id: savedQc.id },
-      })) as QualityCheck;
+      });
     } catch (err) {
       await queryRunner.rollbackTransaction();
       throw err;
@@ -111,7 +114,10 @@ export class QualityCheckService {
     }
   }
 
-  async findAll(params: { status?: string; grn_id?: number } | undefined, companyId: number) {
+  async findAll(
+    params: { status?: string; grn_id?: number } | undefined,
+    companyId: number,
+  ) {
     const qb = this.qcRepo
       .createQueryBuilder('qc')
       .leftJoinAndSelect('qc.items', 'items')
@@ -132,7 +138,11 @@ export class QualityCheckService {
     return qc;
   }
 
-  async update(id: number, dto: Partial<CreateQualityCheckDto>, companyId: number) {
+  async update(
+    id: number,
+    dto: Partial<CreateQualityCheckDto>,
+    companyId: number,
+  ) {
     const qc = await this.qcRepo.findOne({
       where: { id, company_id: companyId },
       relations: ['items'],

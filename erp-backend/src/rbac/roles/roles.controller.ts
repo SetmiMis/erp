@@ -27,9 +27,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 @Controller('roles')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class RolesController {
-  constructor(
-    private readonly rolesService: RolesService,
-  ) {}
+  constructor(private readonly rolesService: RolesService) {}
 
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Post()

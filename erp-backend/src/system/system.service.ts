@@ -33,10 +33,18 @@ export class SystemService {
       const dbStatus = true;
 
       // ✅ Stats
-      const supplierCount = await this.suppliersRepository.count({ where: { company_id: companyId } });
-      const userCount = await this.usersRepository.count({ where: { company_id: companyId } });
-      const warehouseCount = await this.warehousesRepository.count({ where: { company_id: companyId } });
-      const itemCount = await this.itemsRepository.count({ where: { company_id: companyId } });
+      const supplierCount = await this.suppliersRepository.count({
+        where: { company_id: companyId },
+      });
+      const userCount = await this.usersRepository.count({
+        where: { company_id: companyId },
+      });
+      const warehouseCount = await this.warehousesRepository.count({
+        where: { company_id: companyId },
+      });
+      const itemCount = await this.itemsRepository.count({
+        where: { company_id: companyId },
+      });
       const locationCount = 0;
 
       return {

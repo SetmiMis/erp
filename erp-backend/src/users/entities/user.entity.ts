@@ -1,13 +1,13 @@
 // src/users/entities/user.entity.ts
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  CreateDateColumn, 
-  UpdateDateColumn, 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
   DeleteDateColumn,
   ManyToOne,
-  JoinColumn
+  JoinColumn,
 } from 'typeorm';
 import { UserRole, UserStatus } from '../enums/user.enum'; // 🛠️ Path Fix (Ek folder peeche)
 import { Role } from '../../rbac/roles/entities/role.entity'; // 🛠️ Path Fix (Do folder peeche)

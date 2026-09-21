@@ -4,9 +4,13 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { FindOptionsWhere, Repository, ILike } from 'typeorm';
 import { Customer } from './customer.entity';
-import { CreateCustomerDto, QueryCustomerDto } from './dto/create-customer.dto';
+import {
+  CreateCustomerDto,
+  CustomerStatus,
+  QueryCustomerDto,
+} from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 // Mirrors erp-backend/src/suppliers/suppliers.service.ts
@@ -43,12 +47,13 @@ export class CustomersService {
     return this.repo.save(entity);
   }
 
-  async findAll(query: QueryCustomerDto, companyId: number): Promise<Customer[]> {
-    const where: any = { company_id: companyId };
+  async findAll(
+    query: QueryCustomerDto,
+    companyId: number,
+  ): Promise<Customer[]> {
+    const where: FindOptionsWhere<Customer> = { company_id: companyId };
 
-    if (query.status)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-enum-comparison
-      where.is_active = query.status === 'active' ? true : false;
+    if (query.status) where.is_active = query.status === CustomerStatus.ACTIVE;
 
     if (query.search) {
       return this.repo.find({
@@ -66,13 +71,21 @@ export class CustomersService {
   }
 
   async findOne(id: number, companyId: number): Promise<Customer> {
-    const customer = await this.repo.findOne({ where: { id, company_id: companyId } });
+    const customer = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;
   }
 
-  async update(id: number, dto: UpdateCustomerDto, companyId: number): Promise<Customer> {
-    const existing = await this.repo.findOne({ where: { id, company_id: companyId } });
+  async update(
+    id: number,
+    dto: UpdateCustomerDto,
+    companyId: number,
+  ): Promise<Customer> {
+    const existing = await this.repo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!existing) throw new NotFoundException('Customer not found');
 
     if (dto.email && dto.email !== existing.email) {

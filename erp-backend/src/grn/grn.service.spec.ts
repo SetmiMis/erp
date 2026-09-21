@@ -7,6 +7,7 @@ import { GrnItem } from './entities/grn-item.entity';
 import { Item } from '../items/item.entity';
 import { Warehouse } from '../warehouses/warehouse.entity';
 import { InventoryService } from '../inventory/inventory.service';
+import { CreateGrnDto } from './dto/create-grn.dto';
 
 // Regression test for the Phase 1 fix: GRN.create() persisted the goods
 // receipt but never updated warehouse stock at all — receiving never
@@ -28,14 +29,18 @@ describe('GrnService', () => {
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
     manager: {
-      save: jest.fn((entityOrList) =>
-        Array.isArray(entityOrList) ? entityOrList : Promise.resolve({ id: 1, ...entityOrList }),
+      save: jest.fn((entityOrList: unknown) =>
+        Array.isArray(entityOrList)
+          ? entityOrList
+          : Promise.resolve({ id: 1, ...(entityOrList as object) }),
       ),
     },
   };
 
   beforeEach(async () => {
-    warehouseRepo = { findOne: jest.fn().mockResolvedValue({ id: 10, name: 'Main WH' }) };
+    warehouseRepo = {
+      findOne: jest.fn().mockResolvedValue({ id: 10, name: 'Main WH' }),
+    };
     itemRepo = {
       find: jest.fn().mockResolvedValue([{ id: 20, sku: 'ITEM-001' }]),
     };
@@ -44,15 +49,20 @@ describe('GrnService', () => {
         .fn()
         .mockResolvedValue(null) // used by generateGrnNumber()
         .mockResolvedValueOnce(null),
-      create: jest.fn((v) => v),
-    } as any;
-    inventoryService = { increaseStock: jest.fn().mockResolvedValue({ newQty: 25 }) };
+      create: jest.fn((v: unknown) => v),
+    };
+    inventoryService = {
+      increaseStock: jest.fn().mockResolvedValue({ newQty: 25 }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GrnService,
         { provide: getRepositoryToken(Grn), useValue: grnRepo },
-        { provide: getRepositoryToken(GrnItem), useValue: { create: jest.fn((v) => v) } },
+        {
+          provide: getRepositoryToken(GrnItem),
+          useValue: { create: jest.fn((v: unknown) => v) },
+        },
         { provide: getRepositoryToken(Item), useValue: itemRepo },
         { provide: getRepositoryToken(Warehouse), useValue: warehouseRepo },
         { provide: InventoryService, useValue: inventoryService },
@@ -79,7 +89,7 @@ describe('GrnService', () => {
       grn_date: '2026-01-01',
       warehouse_id: 10,
       items: [{ item_id: 20, received_qty: 50 }],
-    } as any;
+    } as CreateGrnDto;
 
     await service.create(dto, TEST_COMPANY_ID);
 
@@ -88,7 +98,10 @@ describe('GrnService', () => {
       10,
       50,
       TEST_COMPANY_ID,
-      expect.objectContaining({ reference_type: 'grn_receipt', queryRunner: mockQueryRunner }),
+      expect.objectContaining({
+        reference_type: 'grn_receipt',
+        queryRunner: mockQueryRunner,
+      }),
     );
     expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
   });

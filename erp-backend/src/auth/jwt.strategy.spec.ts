@@ -57,7 +57,12 @@ describe('JwtStrategy', () => {
 
   it('rejects a refresh-typed token presented as an access token', async () => {
     await expect(
-      strategy.validate({ sub: 1, username: 'a', email: 'a@b.com', type: 'refresh' }),
+      strategy.validate({
+        sub: 1,
+        username: 'a',
+        email: 'a@b.com',
+        type: 'refresh',
+      }),
     ).rejects.toThrow(UnauthorizedException);
   });
 
@@ -65,7 +70,12 @@ describe('JwtStrategy', () => {
     usersService.findOne.mockResolvedValue(undefined);
 
     await expect(
-      strategy.validate({ sub: 1, username: 'ghost', email: 'g@b.com', type: 'access' }),
+      strategy.validate({
+        sub: 1,
+        username: 'ghost',
+        email: 'g@b.com',
+        type: 'access',
+      }),
     ).rejects.toThrow(UnauthorizedException);
   });
 });

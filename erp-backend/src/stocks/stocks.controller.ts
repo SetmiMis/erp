@@ -20,7 +20,10 @@ export class StocksController {
   }
 
   @Get('warehouse/:name')
-  findByWarehouse(@Param('name') warehouse_name: string, @CompanyId() companyId: number) {
+  findByWarehouse(
+    @Param('name') warehouse_name: string,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.findByWarehouse(warehouse_name, companyId);
   }
 

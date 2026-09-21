@@ -38,7 +38,10 @@ export class UsersController {
    */
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.usersService.findById(id, companyId);
   }
 
@@ -63,7 +66,10 @@ export class UsersController {
    */
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     await this.usersService.deleteById(id, companyId);
     return { message: 'User deleted successfully' };
   }

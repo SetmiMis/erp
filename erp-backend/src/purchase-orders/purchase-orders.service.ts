@@ -44,11 +44,17 @@ export class PurchaseOrdersService {
     return { items, grandTotal };
   }
 
-  async create(dto: CreatePurchaseOrderDto, companyId: number): Promise<PurchaseOrder> {
+  async create(
+    dto: CreatePurchaseOrderDto,
+    companyId: number,
+  ): Promise<PurchaseOrder> {
     // Validate related entities — scoped by company so a PO can't be raised
     // against another company's supplier/warehouse/item by guessing an id
     // (see Multi-Company Architecture Audit §11 cross-reference integrity).
-    const supplier = await this.supplierRepo.findOneBy({ id: dto.supplier_id, company_id: companyId });
+    const supplier = await this.supplierRepo.findOneBy({
+      id: dto.supplier_id,
+      company_id: companyId,
+    });
     if (!supplier) {
       throw new NotFoundException(
         `Supplier with ID ${dto.supplier_id} not found`,
@@ -83,7 +89,10 @@ export class PurchaseOrdersService {
     // Process items
     const poItems: PurchaseOrderItem[] = [];
     for (const itemDto of dto.items) {
-      const item = await this.itemRepo.findOneBy({ id: itemDto.item_id, company_id: companyId });
+      const item = await this.itemRepo.findOneBy({
+        id: itemDto.item_id,
+        company_id: companyId,
+      });
       if (!item) {
         throw new NotFoundException(
           `Item with ID ${itemDto.item_id} not found`,
@@ -212,7 +221,7 @@ export class PurchaseOrdersService {
     }
   }
 
-  private transformPoForClient(po: PurchaseOrder): any {
+  private transformPoForClient(po: PurchaseOrder) {
     return {
       id: po.id,
       po_number: po.po_number,
@@ -304,11 +313,13 @@ export class PurchaseOrdersService {
       .groupBy('po.status')
       .getRawMany();
 
-    return rows.reduce((acc: Record<string, number>, r: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      acc[r.status] = Number(r.count);
-      return acc;
-    }, {});
+    return rows.reduce<Record<string, number>>(
+      (acc, r: { status: string; count: string }) => {
+        acc[r.status] = Number(r.count);
+        return acc;
+      },
+      {},
+    );
   }
 
   async getRecent(companyId: number, limit = 5): Promise<any[]> {
@@ -318,6 +329,6 @@ export class PurchaseOrdersService {
       order: { created_at: 'DESC' },
       take: limit,
     });
-    return recentPOs.map(this.transformPoForClient);
+    return recentPOs.map((po) => this.transformPoForClient(po));
   }
 }

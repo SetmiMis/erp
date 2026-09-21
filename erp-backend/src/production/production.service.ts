@@ -55,11 +55,16 @@ export class ProductionService {
   }
 
   async findAll(companyId: number) {
-    return this.poRepo.find({ where: { company_id: companyId }, order: { created_at: 'DESC' } });
+    return this.poRepo.find({
+      where: { company_id: companyId },
+      order: { created_at: 'DESC' },
+    });
   }
 
   async findOne(id: number, companyId: number) {
-    const po = await this.poRepo.findOne({ where: { id, company_id: companyId } });
+    const po = await this.poRepo.findOne({
+      where: { id, company_id: companyId },
+    });
     if (!po) throw new NotFoundException('Production order not found');
     return po;
   }
@@ -131,7 +136,11 @@ export class ProductionService {
    * Complete the production order by calling InventoryService
    * to atomically update stock and create ledger entries.
    */
-  async complete(id: number, dto: CompleteProductionOrderDto, companyId: number) {
+  async complete(
+    id: number,
+    dto: CompleteProductionOrderDto,
+    companyId: number,
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

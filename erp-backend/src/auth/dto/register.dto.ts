@@ -18,17 +18,16 @@ export class RegisterDto {
   @IsPositive()
   company_id: number;
 
-  @Transform(({ value }) => value?.trim())
+  @Transform(({ value }: { value: string }) => value?.trim())
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
   @Matches(/^[a-zA-Z0-9_.]+$/, {
-    message:
-      'Username can contain only letters, numbers, underscore and dot.',
+    message: 'Username can contain only letters, numbers, underscore and dot.',
   })
   username: string;
 
-  @Transform(({ value }) => value?.trim().toLowerCase())
+  @Transform(({ value }: { value: string }) => value?.trim().toLowerCase())
   @IsEmail()
   email: string;
 
@@ -36,7 +35,7 @@ export class RegisterDto {
   @MaxLength(100)
   password: string;
 
-  @Transform(({ value }) => value?.trim())
+  @Transform(({ value }: { value: string }) => value?.trim())
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)

@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  Unique,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Company } from '../companies/company.entity';
 
 // company_id is redundant with item_id/warehouse_id (both already belong to

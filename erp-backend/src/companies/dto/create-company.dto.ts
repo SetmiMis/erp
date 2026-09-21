@@ -61,22 +61,23 @@ export class CreateCompanyDto {
   country?: string;
 
   // --- First admin user fields (mirrors RegisterDto's shape/validation) ---
-  @Transform(({ value }) => value?.trim())
+  @Transform(({ value }: { value: string }) => value?.trim())
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
   @Matches(/^[a-zA-Z0-9_.]+$/, {
-    message: 'Admin username can contain only letters, numbers, underscore and dot.',
+    message:
+      'Admin username can contain only letters, numbers, underscore and dot.',
   })
   admin_username!: string;
 
-  @Transform(({ value }) => value?.trim())
+  @Transform(({ value }: { value: string }) => value?.trim())
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   admin_name!: string;
 
-  @Transform(({ value }) => value?.trim().toLowerCase())
+  @Transform(({ value }: { value: string }) => value?.trim().toLowerCase())
   @IsEmail()
   admin_email!: string;
 

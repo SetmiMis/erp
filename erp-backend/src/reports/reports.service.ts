@@ -4,10 +4,42 @@ import { Repository } from 'typeorm';
 import { PurchaseOrder } from '../purchase-orders/purchase-order.entity';
 import { Grn } from '../grn/entities/grn.entity';
 import { DispatchOrder } from '../dispatch/dispatch.entity';
-import { InventoryService, StockDetailRow } from '../inventory/inventory.service';
+import {
+  InventoryService,
+  StockDetailRow,
+} from '../inventory/inventory.service';
 import * as ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import type { Response } from 'express';
+
+// Resolves a dot-delimited column key (e.g. "supplier.name") against an
+// arbitrary report row without assuming a shared row shape across reports.
+function getByPath(row: unknown, path: string): unknown {
+  return path
+    .split('.')
+    .reduce<unknown>(
+      (acc, part) =>
+        acc && typeof acc === 'object'
+          ? (acc as Record<string, unknown>)[part]
+          : undefined,
+      row,
+    );
+}
+
+function toDisplayString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  switch (typeof value) {
+    case 'string':
+      return value;
+    case 'number':
+    case 'boolean':
+    case 'bigint':
+      return value.toString();
+    default:
+      return JSON.stringify(value);
+  }
+}
 
 // Define a common interface for filters
 export interface ReportFilters {
@@ -32,7 +64,10 @@ export class ReportsService {
   // Multi-company Phase 1: every query starts from a company_id andWhere —
   // see Multi-Company Architecture Audit §10 (reports were fully global).
 
-  async getPurchaseReport(filters: ReportFilters, companyId: number): Promise<PurchaseOrder[]> {
+  async getPurchaseReport(
+    filters: ReportFilters,
+    companyId: number,
+  ): Promise<PurchaseOrder[]> {
     const query = this.poRepo
       .createQueryBuilder('po')
       .leftJoinAndSelect('po.supplier', 'supplier')
@@ -56,7 +91,10 @@ export class ReportsService {
     return query.orderBy('po.order_date', 'DESC').getMany();
   }
 
-  async getGrnReport(filters: ReportFilters, companyId: number): Promise<Grn[]> {
+  async getGrnReport(
+    filters: ReportFilters,
+    companyId: number,
+  ): Promise<Grn[]> {
     const query = this.grnRepo
       .createQueryBuilder('grn')
       .leftJoinAndSelect('grn.purchaseOrder', 'po')
@@ -78,7 +116,10 @@ export class ReportsService {
     return query.orderBy('grn.received_date', 'DESC').getMany();
   }
 
-  async getDispatchReport(filters: ReportFilters, companyId: number): Promise<DispatchOrder[]> {
+  async getDispatchReport(
+    filters: ReportFilters,
+    companyId: number,
+  ): Promise<DispatchOrder[]> {
     const query = this.dispatchRepo
       .createQueryBuilder('dispatch')
       .where('dispatch.company_id = :companyId', { companyId });
@@ -170,14 +211,8 @@ export class ReportsService {
       doc.moveDown(1);
       const rowY = doc.y;
       columns.forEach((column, i) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const value =
-          (column.key.split('.') as any[]).reduce(
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (acc, part) => acc && acc[part],
-            row,
-          ) ?? '';
-        doc.text(String(value), doc.x + (i === 0 ? 0 : 5), rowY, {
+        const value = getByPath(row, column.key);
+        doc.text(toDisplayString(value), doc.x + (i === 0 ? 0 : 5), rowY, {
           width: column.width,
           continued: true,
         });

@@ -43,7 +43,10 @@ export class PurchaseOrdersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.findOne(id, companyId);
   }
 
@@ -60,7 +63,10 @@ export class PurchaseOrdersController {
   @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
     return this.service.remove(id, companyId);
   }
 }
