@@ -4,7 +4,13 @@ services:
     runtime: node
     rootDir: erp-backend
     plan: free
-    buildCommand: npm ci && npm run build
+    # --include=dev is required: with NODE_ENV=production set below, a plain
+    # `npm ci` skips devDependencies, which is where @nestjs/cli (the `nest`
+    # in `nest build`) lives -- the build fails with "sh: nest: not found"
+    # otherwise. (Real deploy on Render: also needed NPM_CONFIG_PRODUCTION=false
+    # set directly since the Blueprint-vs-manual-service path handles this
+    # env var differently; --include=dev here covers it regardless.)
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run start:prod
     # /api/system requires a JWT (see system.controller.ts) -- unsuitable for
     # Render's unauthenticated health check, which would see 401 as unhealthy
@@ -14,6 +20,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
       # Render sets PORT itself and injects it -- main.ts already reads
       # process.env.PORT (PLAN.md step 0.13), so nothing to configure here.
       - key: DATABASE_URL
