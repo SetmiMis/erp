@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: erp-backend
+    runtime: node
+    rootDir: erp-backend
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    # /api/system requires a JWT (see system.controller.ts) -- unsuitable for
+    # Render's unauthenticated health check, which would see 401 as unhealthy
+    # and keep restarting the service. AppController's bare "/" (-> /api/
+    # under the global prefix) has no guard.
+    healthCheckPath: /api
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render sets PORT itself and injects it -- main.ts already reads
+      # process.env.PORT (PLAN.md step 0.13), so nothing to configure here.
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      # Every migration is schema-qualified to "erp_test" -- see PLAN.md
+      # step 0.16.
+      - key: DB_SCHEMA
+        value: erp_test
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://erp-manufacturing-frontend.vercel.app

@@ -12,6 +12,13 @@ Legend: `[x]` done · `[ ]` not started.
 
 - [x] Created `erp-manufacturing-dev` (Supabase, `ap-south-1`, org `SetmiMis's Org`), applied the `erp_test` schema and all 6 migrations to it via the Supabase MCP tools (this sandbox has no network path to `*.supabase.co:5432` for `npm run migration:run` directly — only to the Supabase management API, which the MCP tools use). See `erp-backend/.env.example` for the connection details (password intentionally not committed anywhere).
 - [ ] Row Level Security is off on all 26 tables in that project — intentional for now since this backend uses its own JWT auth over a direct Postgres connection, not Supabase's PostgREST/client-SDK path. Revisit before ever exposing these tables through Supabase's auto-generated REST API.
+- [x] Seeded realistic demo data into the Supabase project (company, users, warehouses, suppliers, customers, items, a BOM, a fully-received PO with GRN+QC, a completed production run, an FGR, a dispatch) — stock_items balances hand-verified against the stock_ledger chain (steel sheet 730kg, M8 bolt 4600pcs, chair 40pcs). Login: `admin@demo.com` / `Demo@1234`. See README.md "Demo data".
+
+## Infra note: deployments
+
+- [x] Frontend deployed to Vercel (`erp-manufacturing-frontend`, team `setmi-india`, git-linked to `SetmiMis/erp` main branch, auto-deploys on push): https://erp-manufacturing-frontend.vercel.app
+- [x] Along the way: the first Vercel deploy failed outright (`VULNERABLE_NEXTJS_VERSION` — Next.js 15.5.3 has a critical RCE, CVE-2025-66478/React2Shell). Upgraded to the latest stable, Next.js 16.3.5, verified with a clean build + a runtime smoke test before pushing, then `npm audit fix` for two unrelated vulnerabilities. 0 vulnerabilities now.
+- [ ] Backend not deployed anywhere yet — the live frontend above can't log in until it is (no `/api` to call, hence the "Unexpected end of JSON input" error on first login attempt). `render.yaml` at the repo root is a ready Render Blueprint; see README.md "Live deployments" for the exact steps (Render dashboard → Blueprint → connect repo → fill in `DATABASE_URL`/`JWT_SECRET` → deploy → point Vercel's `NEXT_PUBLIC_API_URL` at it and redeploy).
 
 ## Phase 0 — Stabilization
 

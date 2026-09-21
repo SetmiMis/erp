@@ -66,6 +66,37 @@ this project starts exposing these tables through Supabase's auto-generated
 REST API or client libraries — worth revisiting before that happens, not
 before.
 
+## Demo data
+
+The Supabase dev database (above) has demo data seeded: one company ("Demo
+Manufacturing Co"), 2 warehouses, 3 suppliers, 3 customers, 8 items, a BOM,
+a fully-received purchase order with GRN + QC, a completed production run,
+a finished-goods receipt, and a dispatch -- stock levels are consistent with
+the full ledger chain. Login:
+
+- `admin@demo.com` / `Demo@1234` (COMPANY_ADMIN)
+- `staff1@demo.com` / `Demo@1234` (USER)
+
+## Live deployments
+
+- **Frontend:** https://erp-manufacturing-frontend.vercel.app (Vercel, project
+  `erp-manufacturing-frontend`, team `setmi-india`, auto-deploys on every push
+  to `main`).
+- **Backend:** not deployed yet -- the frontend above can't actually log in
+  until it is, since it has no `/api` to call. `render.yaml` at the repo root
+  is a ready-to-use Render Blueprint for this:
+  1. On [Render](https://dashboard.render.com), **New +** → **Blueprint** →
+     connect `SetmiMis/erp`. Render detects `render.yaml` and proposes the
+     `erp-backend` web service from it.
+  2. Before the first deploy, fill in the two secrets `render.yaml` leaves
+     blank (`sync: false`): `DATABASE_URL` (the Supabase connection string
+     from `erp-backend/.env.example`'s Supabase section, password from the
+     Supabase dashboard) and `JWT_SECRET` (any long random string).
+  3. Once live, copy the service's `https://erp-backend-<hash>.onrender.com`
+     URL, set it as `NEXT_PUBLIC_API_URL` (with `/api` appended) in the
+     Vercel project's environment variables, and redeploy the frontend so it
+     points at the real backend instead of failing with no `/api` to call.
+
 ## Status
 
 See [`AUDIT_REPORT.md`](./AUDIT_REPORT.md) for a detailed audit: current architecture, database schema, known security/performance issues, and a prioritized list of recommended fixes before further feature work.
