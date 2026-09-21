@@ -12,12 +12,11 @@
     "noEmit": true,
     "incremental": true,
     "module": "esnext",
-
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "plugins": [
       {
         "name": "next"
@@ -28,8 +27,11 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
-, "src/app/purchase-orders/create/page.tsx", "src/app/purchase-orders/[id]/edit/page.tsx"  ],
+    "**/*.tsx",
+    "src/app/purchase-orders/create/page.tsx",
+    "src/app/purchase-orders/[id]/edit/page.tsx",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
