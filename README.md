@@ -48,6 +48,24 @@ npm install
 npm run dev             # http://localhost:3000
 ```
 
+## Shared dev/staging database (Supabase)
+
+A Supabase Postgres project (`erp-manufacturing-dev`, `ap-south-1`) exists for
+shared dev/staging use, with the `erp_test` schema and all current migrations
+already applied. To point `erp-backend` at it instead of a local/docker
+Postgres, get the DB password from the Supabase dashboard and set in your
+`.env` (see `erp-backend/.env.example`'s "Supabase dev/staging project"
+section for the exact `DATABASE_URL`/`DB_SSL`/`DB_SCHEMA` values) — never
+commit that password anywhere, including here.
+
+**Row Level Security is off on every table in that project.** That's
+intentional for now: this backend talks to Postgres directly with its own
+JWT auth (see `erp-backend/src/auth/`), not through Supabase's PostgREST/
+client-SDK path that RLS is meant to gate. It becomes a real gap only if
+this project starts exposing these tables through Supabase's auto-generated
+REST API or client libraries — worth revisiting before that happens, not
+before.
+
 ## Status
 
 See [`AUDIT_REPORT.md`](./AUDIT_REPORT.md) for a detailed audit: current architecture, database schema, known security/performance issues, and a prioritized list of recommended fixes before further feature work.

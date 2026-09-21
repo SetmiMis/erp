@@ -8,6 +8,11 @@ Legend: `[x]` done · `[ ]` not started.
 
 ---
 
+## Infra note: shared dev/staging Supabase project
+
+- [x] Created `erp-manufacturing-dev` (Supabase, `ap-south-1`, org `SetmiMis's Org`), applied the `erp_test` schema and all 6 migrations to it via the Supabase MCP tools (this sandbox has no network path to `*.supabase.co:5432` for `npm run migration:run` directly — only to the Supabase management API, which the MCP tools use). See `erp-backend/.env.example` for the connection details (password intentionally not committed anywhere).
+- [ ] Row Level Security is off on all 26 tables in that project — intentional for now since this backend uses its own JWT auth over a direct Postgres connection, not Supabase's PostgREST/client-SDK path. Revisit before ever exposing these tables through Supabase's auto-generated REST API.
+
 ## Phase 0 — Stabilization
 
 - [x] **0.1** Rate limiting on login/signup (`@nestjs/throttler`)
