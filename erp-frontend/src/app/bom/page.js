@@ -123,10 +123,18 @@ export default function BOMPage() {
                             <td>
                               <span
                                 className={`badge bg-${
-                                  bom.is_active ? "success" : "secondary"
+                                  bom.status === "active"
+                                    ? "success"
+                                    : bom.status === "pending_approval"
+                                      ? "warning text-dark"
+                                      : "secondary"
                                 }`}
                               >
-                                {bom.is_active ? "Active" : "Inactive"}
+                                {bom.status === "pending_approval"
+                                  ? "Pending Approval"
+                                  : bom.status === "active"
+                                    ? "Active"
+                                    : "Draft"}
                               </span>
                             </td>
                             <td>{bom.components_count}</td>

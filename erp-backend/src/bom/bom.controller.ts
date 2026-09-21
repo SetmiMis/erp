@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Put,
+  Patch,
   Delete,
   UseGuards,
   ParseIntPipe,
@@ -13,6 +14,9 @@ import { BomService } from './bom.service';
 import { CreateBomDto } from './dto/create-bom.dto';
 import { UpdateBomDto } from './dto/update-bom.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/enums/user.enum';
 import { CompanyId } from '../common/decorators/company-id.decorator';
 
 @UseGuards(JwtAuthGuard) // Guard को यहाँ एक बार क्लास लेवल पर लगाएं
@@ -71,5 +75,36 @@ export class BomController {
     @CompanyId() companyId: number,
   ) {
     return this.bomService.remove(id, companyId);
+  }
+
+  // PLAN.md step 1.5: draft -> pending_approval -> active. Submit has no
+  // extra role gate (same access as create/update); approve/reject do --
+  // the maker-checker split.
+  @Patch(':id/submit')
+  submit(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
+    return this.bomService.submit(id, companyId);
+  }
+
+  @Patch(':id/approve')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
+  approve(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
+    return this.bomService.approve(id, companyId);
+  }
+
+  @Patch(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN)
+  reject(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: number,
+  ) {
+    return this.bomService.reject(id, companyId);
   }
 }

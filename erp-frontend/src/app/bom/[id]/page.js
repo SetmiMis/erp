@@ -15,29 +15,50 @@ export default function BOMDetailPage() {
   // cost sidebar can't compute.
   const [costData, setCostData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionFlash, setActionFlash] = useState({ type: "", message: "" });
+
+  const fetchBom = async () => {
+    try {
+      const [bomData, itemsData] = await Promise.all([
+        apiClient.get(`/bom/${id}`),
+        apiClient.get("/items"),
+      ]);
+      setBom(bomData);
+      const map = {};
+      (itemsData ?? []).forEach((it) => {
+        map[it.id] = it;
+      });
+      setItemsById(map);
+    } catch (err) {
+      console.error("Error loading BOM:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load BOM detail + items (to resolve item_id -> name/sku for display)
   useEffect(() => {
-    const fetchBom = async () => {
-      try {
-        const [bomData, itemsData] = await Promise.all([
-          apiClient.get(`/bom/${id}`),
-          apiClient.get("/items"),
-        ]);
-        setBom(bomData);
-        const map = {};
-        (itemsData ?? []).forEach((it) => {
-          map[it.id] = it;
-        });
-        setItemsById(map);
-      } catch (err) {
-        console.error("Error loading BOM:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (id) fetchBom();
   }, [id]);
+
+  // PLAN.md step 1.5: draft -> pending_approval -> active. Approve/reject
+  // are role-gated server-side (BomController restricts them to
+  // COMPANY_ADMIN/SUPERADMIN) -- a non-admin still sees the buttons here,
+  // but the backend's 403 message surfaces in actionFlash if they try.
+  const runAction = async (action, successMessage) => {
+    setActionBusy(true);
+    setActionFlash({ type: "", message: "" });
+    try {
+      await apiClient.patch(`/bom/${id}/${action}`);
+      setActionFlash({ type: "success", message: successMessage });
+      await fetchBom();
+    } catch (err) {
+      setActionFlash({ type: "danger", message: err.message || `Failed to ${action} BOM` });
+    } finally {
+      setActionBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -65,11 +86,55 @@ export default function BOMDetailPage() {
           <h1 className="h3 mb-0">
             <i className="bi bi-diagram-3 text-primary"></i> BOM Detail
           </h1>
-          <Link href="/bom" className="btn btn-outline-secondary">
-            <i className="bi bi-arrow-left me-2"></i> Back to BOMs
-          </Link>
+          <div className="d-flex gap-2">
+            {/* PLAN.md step 1.5: draft -> pending_approval -> active */}
+            {bom.status === "draft" && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={actionBusy}
+                onClick={() => runAction("submit", "✅ Submitted for approval.")}
+              >
+                <i className="bi bi-send me-2"></i>Submit for Approval
+              </button>
+            )}
+            {bom.status === "pending_approval" && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  disabled={actionBusy}
+                  onClick={() => runAction("approve", "✅ BOM approved and activated.")}
+                >
+                  <i className="bi bi-check-circle me-2"></i>Approve
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  disabled={actionBusy}
+                  onClick={() => runAction("reject", "↩️ Sent back to draft.")}
+                >
+                  <i className="bi bi-x-circle me-2"></i>Reject
+                </button>
+              </>
+            )}
+            <Link href="/bom" className="btn btn-outline-secondary">
+              <i className="bi bi-arrow-left me-2"></i> Back to BOMs
+            </Link>
+          </div>
         </div>
       </div>
+
+      {actionFlash.message && (
+        <div className={`alert alert-${actionFlash.type} alert-dismissible fade show`} role="alert">
+          {actionFlash.message}
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setActionFlash({ type: "", message: "" })}
+          ></button>
+        </div>
+      )}
 
       {/* BOM Info */}
       <div className="card border-0 shadow-sm mb-4">
@@ -89,8 +154,16 @@ export default function BOMDetailPage() {
             <div className="col-md-2 mb-3">
               <strong>Status:</strong>
               <p>
-                <span className={`badge bg-${bom.status === "active" ? "success" : "secondary"}`}>
-                  {bom.status}
+                <span
+                  className={`badge bg-${
+                    bom.status === "active"
+                      ? "success"
+                      : bom.status === "pending_approval"
+                        ? "warning text-dark"
+                        : "secondary"
+                  }`}
+                >
+                  {bom.status === "pending_approval" ? "Pending Approval" : bom.status}
                 </span>
               </p>
             </div>

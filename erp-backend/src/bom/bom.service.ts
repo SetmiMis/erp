@@ -9,6 +9,7 @@ import { Bom } from './entities/bom.entity';
 import { BomItem } from './entities/bom-item.entity';
 import { CreateBomDto } from './dto/create-bom.dto';
 import { UpdateBomDto } from './dto/update-bom.dto';
+import { BomStatus } from './enums/bom-status.enum';
 
 // Postgres unique_violation -- see AddBomVersioningConstraints1786172699870.
 const UNIQUE_VIOLATION = '23505';
@@ -49,28 +50,21 @@ export class BomService {
   }
 
   async create(createDto: CreateBomDto, companyId: number) {
-    const isActive = createDto.is_active ?? true;
-    // सारे ऑपरेशन्स को एक ट्रांजैक्शन में चलाएं
+    // PLAN.md step 1.5: every BOM starts as a draft -- it only becomes the
+    // active version for its finished item via approve(), so there's no
+    // sibling-deactivation to do here the way there used to be.
     try {
       return await this.dataSource.transaction(
         async (transactionalEntityManager) => {
-          if (isActive && createDto.fg_item_id) {
-            await this.deactivateSiblingVersions(
-              transactionalEntityManager,
-              companyId,
-              createDto.fg_item_id,
-            );
-          }
-
           const bom = transactionalEntityManager.create(Bom, {
             company_id: companyId,
             name: createDto.name,
             code: createDto.code,
             description: createDto.description,
-            status: createDto.status || 'active',
+            status: BomStatus.DRAFT,
             fg_item_id: createDto.fg_item_id ?? null,
             version: createDto.version || 'V1',
-            is_active: isActive,
+            is_active: false,
           });
           const savedBom = await transactionalEntityManager.save(bom);
 
@@ -158,17 +152,14 @@ export class BomService {
     if (!bom) {
       throw new NotFoundException('BOM not found');
     }
-
-    // Effective post-merge state: whichever of these updateDto doesn't
-    // touch, the existing row's value carries through.
-    const willBeActive = updateDto.is_active ?? bom.is_active;
-    const effectiveFgItemId = updateDto.fg_item_id ?? bom.fg_item_id;
-    if (willBeActive && effectiveFgItemId) {
-      await this.deactivateSiblingVersions(
-        transactionalEntityManager,
-        companyId,
-        effectiveFgItemId,
-        id,
+    // PLAN.md step 1.5: once a BOM has left draft (submitted for approval,
+    // or already active), it's frozen -- editing it out from under an
+    // in-flight approval, or an already-active version something else may
+    // be costing/producing against, isn't safe. Revise by creating a new
+    // draft version instead.
+    if (bom.status !== BomStatus.DRAFT) {
+      throw new ConflictException(
+        `Only a draft BOM can be edited (current status: ${bom.status}). Create a new version instead.`,
       );
     }
 
@@ -208,6 +199,78 @@ export class BomService {
 
     // Optional chaining (?) का उपयोग करना ज्यादा सुरक्षित है
     return !!(res && res.affected && res.affected > 0);
+  }
+
+  /**
+   * PLAN.md step 1.5: draft -> pending_approval. Open to any authenticated
+   * user who can already edit the BOM (BomController gates this the same as
+   * create/update, no extra role) -- the role check is on approve/reject
+   * below, the maker-checker split.
+   */
+  async submit(id: number, companyId: number): Promise<Bom> {
+    const bom = await this.findOne(id, companyId);
+    if (bom.status !== BomStatus.DRAFT) {
+      throw new ConflictException(
+        `Only a draft BOM can be submitted for approval (current status: ${bom.status}).`,
+      );
+    }
+    bom.status = BomStatus.PENDING_APPROVAL;
+    return this.bomRepo.save(bom);
+  }
+
+  /**
+   * PLAN.md step 1.5: pending_approval -> active, gated by role
+   * (BomController restricts this to COMPANY_ADMIN/SUPERADMIN). This is
+   * also where a BOM actually becomes "the" active version for its
+   * finished item -- deactivateSiblingVersions() (the step 1.3 versioning
+   * guarantee) now runs here instead of at create/update time, since
+   * that's the only point a BOM's is_active can turn true.
+   */
+  async approve(id: number, companyId: number): Promise<Bom> {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const bom = await manager.findOne(Bom, {
+          where: { id, company_id: companyId },
+        });
+        if (!bom) {
+          throw new NotFoundException('BOM not found');
+        }
+        if (bom.status !== BomStatus.PENDING_APPROVAL) {
+          throw new ConflictException(
+            `Only a BOM pending approval can be approved (current status: ${bom.status}).`,
+          );
+        }
+        if (bom.fg_item_id) {
+          await this.deactivateSiblingVersions(
+            manager,
+            companyId,
+            bom.fg_item_id,
+            bom.id,
+          );
+        }
+        bom.status = BomStatus.ACTIVE;
+        bom.is_active = true;
+        return manager.save(Bom, bom);
+      });
+    } catch (err) {
+      throw this.translateVersionConflict(err);
+    }
+  }
+
+  /**
+   * PLAN.md step 1.5: pending_approval -> draft, i.e. sent back for
+   * revision. Same role gate as approve() -- deciding a submission isn't
+   * ready is the approver's call, not the submitter's.
+   */
+  async reject(id: number, companyId: number): Promise<Bom> {
+    const bom = await this.findOne(id, companyId);
+    if (bom.status !== BomStatus.PENDING_APPROVAL) {
+      throw new ConflictException(
+        `Only a BOM pending approval can be rejected (current status: ${bom.status}).`,
+      );
+    }
+    bom.status = BomStatus.DRAFT;
+    return this.bomRepo.save(bom);
   }
 
   /**

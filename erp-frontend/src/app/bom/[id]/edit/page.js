@@ -11,12 +11,12 @@ export default function EditBOMPage() {
   const [form, setForm] = useState({
     fg_item_id: "",
     version: "V1",
-    is_active: 1,
     remarks: "",
   });
   const [components, setComponents] = useState([]);
   const [flash, setFlash] = useState({ type: "", message: "" });
   const [loading, setLoading] = useState(true);
+  const [bomStatus, setBomStatus] = useState(null);
 
   // Load items + existing BOM
   useEffect(() => {
@@ -27,10 +27,10 @@ export default function EditBOMPage() {
           apiClient.get(`/bom/${id}`),
         ]);
         setItems(itemsData ?? []);
+        setBomStatus(bom.status);
         setForm({
           fg_item_id: bom.fg_item_id ?? "",
           version: bom.version || "V1",
-          is_active: bom.is_active ? 1 : 0,
           remarks: bom.remarks || "",
         });
         setComponents(
@@ -64,8 +64,6 @@ export default function EditBOMPage() {
         name: fgItem?.name,
         fg_item_id: form.fg_item_id ? Number(form.fg_item_id) : undefined,
         version: form.version,
-        is_active: Number(form.is_active) === 1,
-        status: Number(form.is_active) === 1 ? "active" : "inactive",
         items: components
           .filter((c) => c.item_id && c.qty)
           .map((c) => ({ item_id: Number(c.item_id), qty: Number(c.qty) })),
@@ -79,6 +77,11 @@ export default function EditBOMPage() {
 
   if (loading) return <div className="container py-5">Loading...</div>;
 
+  // PLAN.md step 1.5: only a draft BOM can be edited directly (backend
+  // enforces this too — see BomService.updateInTransaction) — once it's
+  // submitted or active, revise by creating a new version instead.
+  const isEditable = bomStatus === "draft";
+
   return (
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -90,6 +93,14 @@ export default function EditBOMPage() {
         <div className={`alert alert-${flash.type}`}>{flash.message}</div>
       )}
 
+      {!isEditable && (
+        <div className="alert alert-warning">
+          This BOM is <strong>{bomStatus}</strong>, not a draft, so it can&apos;t
+          be edited directly. Create a new version instead.
+        </div>
+      )}
+
+      <fieldset disabled={!isEditable}>
       <form onSubmit={handleSubmit}>
         <div className="row">
           {/* Finished Product */}
@@ -104,18 +115,9 @@ export default function EditBOMPage() {
           </div>
 
           {/* Version */}
-          <div className="col-md-3 mb-3">
+          <div className="col-md-6 mb-3">
             <label>Version</label>
             <input type="text" name="version" value={form.version} onChange={handleChange} className="form-control" />
-          </div>
-
-          {/* Status */}
-          <div className="col-md-3 mb-3">
-            <label>Status</label>
-            <select name="is_active" value={form.is_active} onChange={handleChange} className="form-select">
-              <option value={1}>Active</option>
-              <option value={0}>Inactive</option>
-            </select>
           </div>
         </div>
 
@@ -158,6 +160,7 @@ export default function EditBOMPage() {
 
         <button type="submit" className="btn btn-primary">Update BOM</button>
       </form>
+      </fieldset>
     </div>
   );
 }

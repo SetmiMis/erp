@@ -132,6 +132,7 @@ import { ensureSchemaExists } from './database/ensure-schema';
           username,
           password,
           database,
+          schema,
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           migrations,
           migrationsRun,

@@ -30,7 +30,6 @@ export default function CreateBOMPage() {
     fg_item_id: "",
     code: "",
     version: "V1",
-    is_active: 1,
     remarks: "",
   });
   const [components, setComponents] = useState<BOMComponent[]>([]);
@@ -83,20 +82,20 @@ export default function CreateBOMPage() {
 
     setSaving(true);
     try {
-      // Matches erp-backend/src/bom/dto/create-bom.dto.ts
+      // Matches erp-backend/src/bom/dto/create-bom.dto.ts — status/is_active
+      // are not client-settable anymore (PLAN.md step 1.5): every BOM starts
+      // as a draft and moves to active via the submit -> approve workflow.
       await apiClient.post("/bom", {
         name: fgItem?.name || `BOM for item #${form.fg_item_id}`,
         code: form.code || undefined,
         fg_item_id: Number(form.fg_item_id),
         version: form.version,
-        is_active: Number(form.is_active) === 1,
-        status: Number(form.is_active) === 1 ? "active" : "inactive",
         items: components
           .filter((c) => c.item_id && c.qty)
           .map((c) => ({ item_id: Number(c.item_id), qty: Number(c.qty) })),
       });
 
-      setFlash({ type: "success", message: "✅ BOM Created Successfully!" });
+      setFlash({ type: "success", message: "✅ BOM created as a draft — submit it for approval from the BOM detail page." });
       setTimeout(() => router.push("/bom"), 1000);
     } catch (error: any) {
       setFlash({ type: "danger", message: error.message || "Failed to create BOM" });
@@ -162,7 +161,7 @@ export default function CreateBOMPage() {
           </div>
 
           {/* Version */}
-          <div className="col-md-3 mb-3">
+          <div className="col-md-6 mb-3">
             <label className="form-label">Version</label>
             <input
               type="text"
@@ -172,21 +171,6 @@ export default function CreateBOMPage() {
               onChange={handleChange}
               required
             />
-          </div>
-
-          {/* Active Status */}
-          <div className="col-md-3 mb-3">
-            <label className="form-label">Status</label>
-            <select
-              name="is_active"
-              className="form-select"
-              value={form.is_active}
-              onChange={handleChange}
-              required
-            >
-              <option value={1}>Active</option>
-              <option value={0}>Inactive</option>
-            </select>
           </div>
 
           {/* Remarks */}

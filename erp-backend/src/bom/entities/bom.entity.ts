@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { BomItem } from './bom-item.entity';
 import { Company } from '../../companies/company.entity';
+import { BomStatus } from '../enums/bom-status.enum';
 
 @Entity({ name: 'boms' })
 export class Bom {
@@ -32,8 +33,14 @@ export class Bom {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'varchar', length: 30, default: 'active' })
-  status: string;
+  // PLAN.md step 1.5: draft -> pending_approval -> active, enforced by
+  // BomService (see its transition methods) and a DB CHECK constraint
+  // (migration AddBomApprovalWorkflow). `is_active` (below) only ever
+  // becomes true as a side effect of approve() -- it's the separate,
+  // pre-existing "which version is the current one" flag from step 1.3,
+  // not the workflow state itself.
+  @Column({ type: 'varchar', length: 30, default: BomStatus.DRAFT })
+  status: BomStatus;
 
   // The finished good this BOM produces. Nullable so pre-existing BOM rows
   // (created before this column existed) don't break; new BOMs should set it.
@@ -43,7 +50,7 @@ export class Bom {
   @Column({ type: 'varchar', length: 30, default: 'V1' })
   version: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: false })
   is_active: boolean;
 
   @OneToMany(() => BomItem, (item) => item.bom, { cascade: true })

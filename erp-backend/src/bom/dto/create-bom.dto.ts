@@ -4,7 +4,6 @@ import {
   IsArray,
   IsInt,
   IsNumber,
-  IsBoolean,
   Min,
   ArrayMinSize,
   ValidateNested,
@@ -44,10 +43,6 @@ export class CreateBomDto {
   @IsString()
   description?: string;
 
-  @IsOptional()
-  @IsString()
-  status?: string;
-
   // The finished good this BOM produces (see erp-backend/src/bom/entities/bom.entity.ts).
   @IsOptional()
   @IsInt()
@@ -57,10 +52,9 @@ export class CreateBomDto {
   @IsString()
   version?: string;
 
-  @IsOptional()
-  @IsBoolean()
-  is_active?: boolean;
-
+  // `status`/`is_active` are deliberately not settable here (PLAN.md step
+  // 1.5) -- every BOM is created as draft and moves through the approval
+  // workflow via BomController's submit/approve/reject endpoints instead.
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
