@@ -99,6 +99,7 @@ describe('DispatchService', () => {
       5,
       TEST_COMPANY_ID,
       mockQueryRunner,
+      undefined,
     );
     expect(inventoryService.decreaseStock).toHaveBeenCalledWith(
       20,

@@ -5,6 +5,8 @@ import {
   IsDateString,
   IsOptional,
   IsInt,
+  IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -21,6 +23,17 @@ class CreateGrnItemDto {
 
   @IsOptional()
   remarks?: string;
+
+  // PLAN.md step 1.6: required by GrnService.create() when this item is
+  // batch_tracked, ignored otherwise.
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  batch_no?: string;
+
+  @IsOptional()
+  @IsDateString()
+  expiry_date?: string;
 }
 
 export class CreateGrnDto {

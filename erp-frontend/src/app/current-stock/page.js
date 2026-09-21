@@ -132,6 +132,7 @@ export default function CurrentStockPage() {
                       <tr>
                         <th>Item Code</th>
                         <th>Item Name</th>
+                        <th>Batch / Expiry</th>
                         <th>Warehouse</th>
                         <th>Current Stock</th>
                         <th>Unit</th>
@@ -149,6 +150,20 @@ export default function CurrentStockPage() {
                               <strong>{stock.item_code}</strong>
                             </td>
                             <td>{stock.item_name}</td>
+                            <td>
+                              {stock.batch_no ? (
+                                <>
+                                  <span className="badge bg-info text-dark">{stock.batch_no}</span>
+                                  {stock.expiry_date && (
+                                    <div className="small text-muted">
+                                      Exp: {new Date(stock.expiry_date).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-muted">—</span>
+                              )}
+                            </td>
                             <td>{stock.warehouse_name}</td>
                             <td>
                               <strong

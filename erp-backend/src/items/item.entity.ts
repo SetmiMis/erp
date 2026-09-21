@@ -53,6 +53,14 @@ export class Item {
   @Column({ type: 'boolean', default: true })
   is_active!: boolean;
 
+  // PLAN.md step 1.6: opt-in per item. When true, GRN receipts require a
+  // batch_no per line and dispatch can target a specific batch or fall back
+  // to FEFO (see InventoryService/GrnService/DispatchService). Items that
+  // never set this keep behaving exactly as before -- batch_no/expiry_date
+  // on stock_items/stock_ledger stay null for them.
+  @Column({ type: 'boolean', default: false })
+  batch_tracked!: boolean;
+
   @CreateDateColumn()
   created_at!: Date;
 

@@ -28,4 +28,12 @@ export class GrnItem {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   remarks?: string;
+
+  // PLAN.md step 1.6: required when item.batch_tracked is true (enforced in
+  // GrnService.create()), ignored otherwise.
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  batch_no?: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  expiry_date?: string | null;
 }

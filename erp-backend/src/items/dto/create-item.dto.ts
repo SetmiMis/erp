@@ -56,4 +56,9 @@ export class CreateItemDto {
   @IsBoolean()
   @Transform(({ value }) => (value === undefined ? true : value)) // eslint-disable-line @typescript-eslint/no-unsafe-return
   is_active?: boolean = true;
+
+  // PLAN.md step 1.6: opt-in batch/lot tracking (see item.entity.ts).
+  @IsOptional()
+  @IsBoolean()
+  batch_tracked?: boolean;
 }

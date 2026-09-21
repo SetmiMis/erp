@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -20,6 +21,14 @@ class DispatchItemDto {
   @IsNumber()
   @IsPositive()
   dispatched_qty: number;
+
+  // PLAN.md step 1.6: which batch to dispatch from, for a batch-tracked
+  // item. Omit it to let DispatchService pick FEFO (oldest expiry first)
+  // across whatever batches are in stock instead.
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  batch_no?: string;
 }
 
 export class CreateDispatchDto {

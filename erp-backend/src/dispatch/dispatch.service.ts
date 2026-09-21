@@ -38,6 +38,7 @@ export class DispatchService {
       dto.items.map(async (item) => ({
         item: await this.itemsService.findByCode(item.item_code, companyId),
         dispatched_qty: item.dispatched_qty,
+        batch_no: item.batch_no,
       })),
     );
 
@@ -47,14 +48,28 @@ export class DispatchService {
     try {
       // 1) Validate availability for every line before touching stock, so a
       // partially-fulfillable dispatch never leaves stock half-decremented.
-      for (const { item, dispatched_qty } of resolvedItems) {
-        await this.inventoryService.checkAvailability(
-          item.id,
-          warehouse.id,
-          dispatched_qty,
-          companyId,
-          queryRunner,
-        );
+      // PLAN.md step 1.6: a batch-tracked line with no batch_no is a FEFO
+      // dispatch that can draw from more than one batch, so it's checked
+      // against the item's total across all batches rather than one row.
+      for (const { item, dispatched_qty, batch_no } of resolvedItems) {
+        if (item.batch_tracked && !batch_no) {
+          await this.inventoryService.checkAvailabilityAcrossBatches(
+            item.id,
+            warehouse.id,
+            dispatched_qty,
+            companyId,
+            queryRunner,
+          );
+        } else {
+          await this.inventoryService.checkAvailability(
+            item.id,
+            warehouse.id,
+            dispatched_qty,
+            companyId,
+            queryRunner,
+            batch_no,
+          );
+        }
       }
 
       const dispatch = queryRunner.manager.create(DispatchOrder, {
@@ -69,19 +84,35 @@ export class DispatchService {
 
       // 2) Decrease stock for each item, with a ledger entry pointing back
       // at this dispatch order.
-      for (const { item, dispatched_qty } of resolvedItems) {
-        await this.inventoryService.decreaseStock(
-          item.id,
-          warehouse.id,
-          dispatched_qty,
-          companyId,
-          {
-            reference_type: 'dispatch',
-            reference_id: savedDispatch.id,
-            remarks: `Dispatch ${savedDispatch.dispatch_number}`,
-            queryRunner,
-          },
-        );
+      for (const { item, dispatched_qty, batch_no } of resolvedItems) {
+        if (item.batch_tracked && !batch_no) {
+          await this.inventoryService.decreaseStockFefo(
+            item.id,
+            warehouse.id,
+            dispatched_qty,
+            companyId,
+            {
+              reference_type: 'dispatch',
+              reference_id: savedDispatch.id,
+              remarks: `Dispatch ${savedDispatch.dispatch_number}`,
+              queryRunner,
+            },
+          );
+        } else {
+          await this.inventoryService.decreaseStock(
+            item.id,
+            warehouse.id,
+            dispatched_qty,
+            companyId,
+            {
+              reference_type: 'dispatch',
+              reference_id: savedDispatch.id,
+              remarks: `Dispatch ${savedDispatch.dispatch_number}`,
+              queryRunner,
+              batch_no,
+            },
+          );
+        }
       }
 
       await queryRunner.commitTransaction();
@@ -158,43 +189,79 @@ export class DispatchService {
           );
         }
 
+        // PLAN.md step 1.6: when new line items are given, a batch-tracked
+        // one with no batch_no re-runs FEFO from scratch (the reversal
+        // above already put its old batches' stock back, so this picks
+        // fresh); the "only the warehouse changed" fallback instead replays
+        // each original movement against its own recorded batch_no exactly
+        // (no FEFO re-selection -- it's not a new consumption decision).
         const newLines = dto.items
           ? await Promise.all(
-              dto.items.map(async (line) => ({
-                itemId: (
-                  await this.itemsService.findByCode(line.item_code, companyId)
-                ).id,
-                qty: line.dispatched_qty,
-              })),
+              dto.items.map(async (line) => {
+                const item = await this.itemsService.findByCode(
+                  line.item_code,
+                  companyId,
+                );
+                return {
+                  itemId: item.id,
+                  qty: line.dispatched_qty,
+                  batch_no: line.batch_no,
+                  fefo: item.batch_tracked && !line.batch_no,
+                };
+              }),
             )
           : originalMovements.map((m) => ({
               itemId: m.item_id,
               qty: Number(m.qty_out),
+              batch_no: m.batch_no ?? undefined,
+              fefo: false,
             }));
 
         // Validate every line before touching stock, same reasoning as create().
         for (const line of newLines) {
-          await this.inventoryService.checkAvailability(
-            line.itemId,
-            warehouseId,
-            line.qty,
-            companyId,
-            queryRunner,
-          );
+          if (line.fefo) {
+            await this.inventoryService.checkAvailabilityAcrossBatches(
+              line.itemId,
+              warehouseId,
+              line.qty,
+              companyId,
+              queryRunner,
+            );
+          } else {
+            await this.inventoryService.checkAvailability(
+              line.itemId,
+              warehouseId,
+              line.qty,
+              companyId,
+              queryRunner,
+              line.batch_no,
+            );
+          }
         }
         for (const line of newLines) {
-          await this.inventoryService.decreaseStock(
-            line.itemId,
-            warehouseId,
-            line.qty,
-            companyId,
-            {
-              reference_type: 'dispatch',
-              reference_id: id,
-              remarks: `Dispatch ${existing.dispatch_number} (updated)`,
-              queryRunner,
-            },
-          );
+          const mutationOpts = {
+            reference_type: 'dispatch',
+            reference_id: id,
+            remarks: `Dispatch ${existing.dispatch_number} (updated)`,
+            queryRunner,
+          };
+          if (line.fefo) {
+            await this.inventoryService.decreaseStockFefo(
+              line.itemId,
+              warehouseId,
+              line.qty,
+              companyId,
+              mutationOpts,
+            );
+          } else {
+            await this.inventoryService.decreaseStock(
+              line.itemId,
+              warehouseId,
+              line.qty,
+              companyId,
+              { ...mutationOpts, batch_no: line.batch_no },
+            );
+          }
         }
       }
 

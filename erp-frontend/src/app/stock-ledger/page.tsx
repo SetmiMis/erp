@@ -28,6 +28,7 @@ interface StockTransaction {
   reference_type?: ReferenceType;
   reference_id?: number;
   remarks?: string;
+  batch_no?: string | null;
 }
 
 interface Filters {
@@ -244,7 +245,10 @@ const StockLedgerPage: FC = () => {
                     return (
                     <tr key={t.id}>
                       <td>{new Date(t.transaction_date).toLocaleDateString("en-GB")}</td>
-                      <td><strong>{t.item_name}</strong><br /><small className="text-muted">{t.item_code}</small></td>
+                      <td>
+                        <strong>{t.item_name}</strong><br /><small className="text-muted">{t.item_code}</small>
+                        {t.batch_no && <><br /><span className="badge bg-info text-dark">Batch: {t.batch_no}</span></>}
+                      </td>
                       <td>{t.warehouse_name}</td>
                       <td>
                         <span className={`badge bg-${(t.reference_type && referenceTypeClass[t.reference_type]) || 'light text-dark'}`}>

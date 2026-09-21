@@ -50,6 +50,18 @@ export class GrnService {
     if (items.length !== itemIds.length)
       throw new BadRequestException('One or more items not found.');
 
+    // PLAN.md step 1.6: a batch-tracked item's receipt has to say which
+    // batch it's creating/adding to -- without it the stock row can't be
+    // told apart from any other batch of the same item.
+    for (const line of dto.items) {
+      const item = items.find((it) => it.id === line.item_id);
+      if (item?.batch_tracked && !line.batch_no) {
+        throw new BadRequestException(
+          `Item "${item.name}" is batch-tracked -- batch_no is required for this GRN line.`,
+        );
+      }
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -73,6 +85,10 @@ export class GrnService {
           item,
           received_qty: i.received_qty,
           remarks: i.remarks,
+          // PLAN.md step 1.6: stripped for a non-batch-tracked item even if
+          // the request sent one, so stock_items/stock_ledger stay clean.
+          batch_no: item?.batch_tracked ? i.batch_no : null,
+          expiry_date: item?.batch_tracked ? i.expiry_date : null,
         });
       });
 
@@ -91,6 +107,8 @@ export class GrnService {
             reference_id: savedGrn.id,
             remarks: `GRN ${grnNumber}`,
             queryRunner,
+            batch_no: grnItem.batch_no ?? undefined,
+            expiry_date: grnItem.expiry_date ?? undefined,
           },
         );
       }

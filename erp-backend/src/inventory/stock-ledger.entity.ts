@@ -46,6 +46,14 @@ export class StockLedger {
   @Column({ type: 'text', nullable: true })
   remarks: string;
 
+  // PLAN.md step 1.6: which batch this movement was against, if any (null
+  // for every movement of a non-batch-tracked item, same as stock_items).
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  batch_no: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  expiry_date: string | null;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 }
