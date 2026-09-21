@@ -43,7 +43,7 @@ Visual design and UX flows both in scope — not just a coat of paint. Runs modu
 
 ## Phase 1 — Core ERP gaps (each bullet is its own step, do in this order)
 
-- [ ] **1.1** Stock ledger pagination — replace the hardcoded `LIMIT 500` in `InventoryService.getLedger` with real cursor/offset pagination + a `(company_id, created_at)` composite index
+- [x] **1.1** Stock ledger pagination — `InventoryService.getLedger` now returns `{ rows, total, limit, offset }` (offset pagination, max page size 200, default 50, ordered by `created_at DESC, id DESC` for a stable tie-break), backed by a new `(company_id, created_at)` index. `InventoryController` and the `stock-ledger` frontend page (Prev/Next + "Showing X-Y of total") updated to match. Verified end-to-end via the docker-compose stack: seeded 7 real stock movements through the API, confirmed 3-page pagination (3+3+1) returns the correct rows with a consistent `total` on every page.
 - [ ] **1.2** Composite indexes `(company_id, status)` on `purchase_orders`, `production_orders`, `dispatch_orders` (do after 1.1 confirms the actual dashboard query shapes)
 - [ ] **1.3** BOM versioning — allow multiple versions per finished item, mark exactly one `is_active` per item at a time (schema currently allows a flat list with no version-conflict guard)
 - [ ] **1.4** BOM cost rollup — compute a finished item's cost from its active BOM's component costs, surfaced on the item/BOM pages

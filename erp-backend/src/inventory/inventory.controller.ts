@@ -31,10 +31,14 @@ export class InventoryController {
     @CompanyId() companyId: number,
     @Query('search') search?: string,
     @Query('warehouse_id') warehouse_id?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ) {
     return this.service.getLedger(companyId, {
       search,
       warehouse_id: warehouse_id ? Number(warehouse_id) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
     });
   }
 
@@ -47,8 +51,20 @@ export class InventoryController {
     };
     const result =
       dto.adjustment_type === 'IN'
-        ? await this.service.increaseStock(dto.item_id, dto.warehouse_id, dto.qty, companyId, opts)
-        : await this.service.decreaseStock(dto.item_id, dto.warehouse_id, dto.qty, companyId, opts);
+        ? await this.service.increaseStock(
+            dto.item_id,
+            dto.warehouse_id,
+            dto.qty,
+            companyId,
+            opts,
+          )
+        : await this.service.decreaseStock(
+            dto.item_id,
+            dto.warehouse_id,
+            dto.qty,
+            companyId,
+            opts,
+          );
 
     return {
       adjustment_number: `ADJ-${Date.now()}`,

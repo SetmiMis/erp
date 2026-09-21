@@ -56,8 +56,19 @@ const LoadingSpinner: FC = () => (
   </div>
 );
 
+const PAGE_SIZE = 50;
+
+interface LedgerResponse {
+  rows: StockTransaction[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 const StockLedgerPage: FC = () => {
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [flash, setFlash] = useState<FlashMessage>({ type: "", message: "" });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +88,13 @@ const StockLedgerPage: FC = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  // This effect fetches data whenever the search filter changes.
+  // Any filter change goes back to page 1 — a stale offset from a previous,
+  // larger result set could otherwise land past the end of a filtered one.
+  useEffect(() => {
+    setOffset(0);
+  }, [filters.search]);
+
+  // This effect fetches data whenever the search filter or page changes.
   // reference_type is filtered client-side below (backend only supports
   // search/warehouse_id — see erp-backend/src/inventory/inventory.controller.ts).
   useEffect(() => {
@@ -85,9 +102,14 @@ const StockLedgerPage: FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const query = new URLSearchParams({ search: filters.search }).toString();
-        const data = await apiClient.get<StockTransaction[]>(`/inventory/ledger?${query}`);
-        setTransactions(data ?? []);
+        const query = new URLSearchParams({
+          search: filters.search,
+          limit: String(PAGE_SIZE),
+          offset: String(offset),
+        }).toString();
+        const data = await apiClient.get<LedgerResponse>(`/inventory/ledger?${query}`);
+        setTransactions(data?.rows ?? []);
+        setTotal(data?.total ?? 0);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -95,7 +117,7 @@ const StockLedgerPage: FC = () => {
       }
     };
     fetchData();
-  }, [filters.search]);
+  }, [filters.search, offset]);
 
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setFilters(prev => ({ ...prev, reference_type: e.target.value }));
@@ -104,11 +126,23 @@ const StockLedgerPage: FC = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setFilters({ reference_type: "", search: "" });
+    setOffset(0);
   };
 
+  // Note: this only filters the current page's rows client-side (the backend
+  // doesn't support filtering by reference_type — see the comment above the
+  // fetch effect). With real pagination now in place, that means a type
+  // filter can legitimately show fewer than PAGE_SIZE rows even when more
+  // matching rows exist on other pages; Prev/Next below still page through
+  // the unfiltered total, not the filtered count.
   const visibleTransactions = filters.reference_type
     ? transactions.filter((t) => t.reference_type === filters.reference_type)
     : transactions;
+
+  const pageStart = total === 0 ? 0 : offset + 1;
+  const pageEnd = Math.min(offset + PAGE_SIZE, total);
+  const canGoPrev = offset > 0;
+  const canGoNext = offset + PAGE_SIZE < total;
 
   const referenceTypeClass: Record<string, string> = {
     grn_receipt: "success",
@@ -233,6 +267,31 @@ const StockLedgerPage: FC = () => {
                   )})}
                 </tbody>
               </table>
+            </div>
+          )}
+          {!loading && !error && total > 0 && (
+            <div className="d-flex justify-content-between align-items-center mt-3">
+              <small className="text-muted">
+                Showing {pageStart}-{pageEnd} of {total}
+              </small>
+              <div className="btn-group">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  disabled={!canGoPrev}
+                  onClick={() => setOffset((o) => Math.max(o - PAGE_SIZE, 0))}
+                >
+                  <i className="bi bi-chevron-left"></i> Prev
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  disabled={!canGoNext}
+                  onClick={() => setOffset((o) => o + PAGE_SIZE)}
+                >
+                  Next <i className="bi bi-chevron-right"></i>
+                </button>
+              </div>
             </div>
           )}
         </div>

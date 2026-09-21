@@ -348,19 +348,54 @@ export class InventoryService {
     return qb.orderBy('item.name', 'ASC').getRawMany();
   }
 
-  /** Stock ledger entries with item/warehouse details, for the stock ledger page. */
+  /**
+   * Stock ledger entries with item/warehouse details, for the stock ledger
+   * page. PLAN.md step 1.1: this used to be a hardcoded LIMIT 500 with no
+   * way to see anything past the 500 most recent movements -- fine at
+   * today's row counts, a real gap once a company has been running long
+   * enough to generate more than 500 movements total. Now real offset
+   * pagination, backed by the (company_id, created_at) index added
+   * alongside this change.
+   */
   async getLedger(
     companyId: number,
     filters?: {
       search?: string;
       warehouse_id?: number;
+      limit?: number;
+      offset?: number;
     },
-  ): Promise<LedgerRow[]> {
-    const qb = this.stockLedgerRepo
+  ): Promise<{
+    rows: LedgerRow[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const limit = Math.min(Math.max(filters?.limit ?? 50, 1), 200);
+    const offset = Math.max(filters?.offset ?? 0, 0);
+
+    const baseQb = this.stockLedgerRepo
       .createQueryBuilder('sl')
       .innerJoin('items', 'item', 'item.id = sl.item_id')
       .innerJoin('warehouses', 'wh', 'wh.id = sl.warehouse_id')
-      .where('sl.company_id = :companyId', { companyId })
+      .where('sl.company_id = :companyId', { companyId });
+
+    if (filters?.warehouse_id) {
+      baseQb.andWhere('sl.warehouse_id = :warehouse_id', {
+        warehouse_id: filters.warehouse_id,
+      });
+    }
+    if (filters?.search) {
+      baseQb.andWhere('(item.name ILIKE :q OR item.sku ILIKE :q)', {
+        q: `%${filters.search}%`,
+      });
+    }
+
+    // Counted before .select()/.orderBy()/.limit()/.offset() are applied so
+    // it reflects the same filters without those clauses affecting it.
+    const total = await baseQb.getCount();
+
+    const rows = await baseQb
       .select([
         'sl.id AS id',
         'sl.created_at AS transaction_date',
@@ -373,18 +408,17 @@ export class InventoryService {
         'sl.reference_type AS reference_type',
         'sl.reference_id AS reference_id',
         'sl.remarks AS remarks',
-      ]);
-    if (filters?.warehouse_id) {
-      qb.andWhere('sl.warehouse_id = :warehouse_id', {
-        warehouse_id: filters.warehouse_id,
-      });
-    }
-    if (filters?.search) {
-      qb.andWhere('(item.name ILIKE :q OR item.sku ILIKE :q)', {
-        q: `%${filters.search}%`,
-      });
-    }
-    return qb.orderBy('sl.created_at', 'DESC').limit(500).getRawMany();
+      ])
+      // id as a tie-breaker: created_at alone isn't unique, so without this
+      // two rows with the same timestamp could land in either order across
+      // pages (page 1 could repeat or skip a row page 2 also has/misses).
+      .orderBy('sl.created_at', 'DESC')
+      .addOrderBy('sl.id', 'DESC')
+      .limit(limit)
+      .offset(offset)
+      .getRawMany<LedgerRow>();
+
+    return { rows, total, limit, offset };
   }
 }
 
