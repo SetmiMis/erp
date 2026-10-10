@@ -1,6 +1,6 @@
 // One source of truth. In Google Sites this is the Systems Register sheet (Systems + Members tabs).
 window.DATA = {
-  company: "Company Intranet",
+  company: "Setmi India",
   notice: "Welcome to the new intranet — one front door for every system. Internal use only.",
   quick: [
     ["Apply Leave","forms.html#HR"],["Payment Request","forms.html#Accounts & IT"],

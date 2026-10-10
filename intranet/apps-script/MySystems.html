@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font:15px/1.5 Arial,sans-serif;margin:0;padding:16px;color:#0f2a3a;border-top:6px solid #005a84}
+h2{margin:0 0 4px}p{color:#5b6785;margin:0 0 14px}table{width:100%;border-collapse:collapse}
+th{background:#e3f1f8;color:#005a84;text-align:left;font-size:12px;text-transform:uppercase;padding:8px}
+td{padding:8px;border-bottom:1px solid #e3e7f2}.r{background:#fdebe7;color:#e96651;border-radius:99px;padding:2px 10px;font-weight:700;font-size:12px}
+a{color:#005a84;font-weight:700;margin-right:8px}
+</style></head><body>
+<h2>My Systems</h2><p>Signed in as <b><?= email ?></b></p><div id="out">Loading…</div>
+<script>
+google.script.run.withSuccessHandler(rows=>{
+  const e=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const link=(u,t)=>u?`<a href="${e(u)}" target="_blank">${t}</a>`:'';
+  document.getElementById('out').innerHTML = rows.length
+    ? `<table><tr><th>System</th><th>What for</th><th>Your role</th><th>Open</th><th>Owner</th><th>Status</th></tr>`+
+      rows.map(r=>`<tr><td>${e(r.name)}</td><td>${e(r.what)}</td><td><span class="r">${e(r.role)}</span></td><td>${link(r.form,'Form')}${link(r.sheet,'Sheet')}</td><td>${e(r.owner)}</td><td>${e(r.status)}</td></tr>`).join('')+`</table>`
+    : 'No systems are assigned to your email yet. Ask the HR owner to add you in the Members tab.';
+}).withFailureHandler(x=>document.getElementById('out').textContent='Error: '+x.message).getMySystems();
+</script></body></html>

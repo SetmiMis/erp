@@ -6,7 +6,7 @@ const el = (h)=>{const t=document.createElement("template");t.innerHTML=h.trim()
 
 function shell(){
   const cur = location.pathname.split("/").pop() || "index.html";
-  document.body.prepend(el(`<header class="top"><a class="brand" href="index.html">${D.company}<span>.</span></a>
+  document.body.prepend(el(`<header class="top"><a class="brand" href="index.html"><img src="https://setmiindia.com/wp-content/uploads/2026/06/cropped-ChatGPT-Image-Jun-5-2026-01_07_56-PM-192x192.png" alt="">${D.company}<span>.</span><small>Intranet</small></a>
     <nav>${PAGES.map(([h,n])=>`<a href="${h}" class="${h===cur?"on":""}">${n}</a>`).join("")}</nav></header>`));
   document.body.append(el(`<footer>Internal only · Embed, never retype · Seven pages, never more.</footer>`));
 }

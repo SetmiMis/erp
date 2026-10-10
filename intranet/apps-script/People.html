@@ -1,0 +1,17 @@
+<!DOCTYPE html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font:15px/1.5 Arial,sans-serif;margin:0;padding:16px;color:#0f2a3a;border-top:6px solid #005a84}
+.t{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px}.t button{border:1px solid #e3e7f2;background:#fff;padding:7px 14px;border-radius:99px;cursor:pointer;font-weight:700;color:#5b6785}
+.t button.on{background:#005a84;color:#fff;border-color:#005a84}table{width:100%;border-collapse:collapse}
+th{background:#e3f1f8;color:#005a84;text-align:left;font-size:12px;text-transform:uppercase;padding:8px}td{padding:8px;border-bottom:1px solid #e3e7f2}
+</style></head><body><h2>People</h2><div class="t" id="t"></div><div id="out">Loading…</div>
+<script>
+const e=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+google.script.run.withSuccessHandler(d=>{
+  const names=Object.keys(d),bar=document.getElementById('t');
+  const show=n=>{[...bar.children].forEach(b=>b.classList.toggle('on',b.textContent===n));
+    const rows=d[n],h=rows.length?Object.keys(rows[0]):[];
+    document.getElementById('out').innerHTML='<table><tr>'+h.map(x=>`<th>${e(x)}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+h.map(x=>`<td>${e(r[x])}</td>`).join('')+'</tr>').join('')+'</table>';};
+  names.forEach(n=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>show(n);bar.append(b);});show(names[0]);
+}).getPeople();
+</script></body></html>

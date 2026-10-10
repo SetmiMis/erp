@@ -1,8 +1,8 @@
-:root{--navy:#0b1b3b;--blue:#2340b8;--orange:#e8590c;--bg:#f4f6fc;--card:#fff;--line:#e3e7f2;--mut:#5b6785;--tint:#e8edfb;--otint:#ffece0}
-@media(prefers-color-scheme:dark){:root{--bg:#0d1220;--card:#151c30;--line:#27304a;--mut:#9aa6c4;--navy:#e8edfb;--tint:#1c2748;--otint:#3a2416;--blue:#7d97ff}}
+:root{--navy:#0f2a3a;--blue:#005a84;--orange:#e96651;--bg:#f5f9fb;--card:#fff;--line:#e3e7f2;--mut:#5b6785;--tint:#e3f1f8;--otint:#fdebe7}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1220;--card:#151c30;--line:#27304a;--mut:#9aa6c4;--navy:#e8edfb;--tint:#16384a;--otint:#40231d;--blue:#5cb8e4}}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--navy);border-top:6px solid var(--blue)}
 a{color:var(--blue)}.top{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--line)}
-.brand{font-weight:800;font-size:22px;text-decoration:none;color:var(--navy)}.brand span{color:var(--orange)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;text-decoration:none;color:var(--navy)}.brand span{color:var(--orange)}
 nav{display:flex;flex-wrap:wrap;gap:4px}nav a{padding:6px 12px;border-radius:8px;text-decoration:none;color:var(--mut);font-weight:600}
 nav a.on,nav a:hover{background:var(--tint);color:var(--blue)}
 main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}h1{font-size:34px;margin:0 0 4px}h1 em{color:var(--blue);font-style:normal}
@@ -20,3 +20,4 @@ table{width:100%;border-collapse:collapse;background:var(--card);border-radius:1
 select{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--navy)}
 .note{border-left:4px solid var(--orange);background:var(--otint);padding:10px 14px;border-radius:8px;margin:14px 0;color:var(--navy)}
 footer{text-align:center;color:var(--mut);padding:24px;font-size:13px}
+.brand img{width:34px;height:34px;border-radius:8px}.top small{color:var(--mut);font-weight:600}
