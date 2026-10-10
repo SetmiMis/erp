@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Policies · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>Policies</h1><p class="sub">Docs, embedded. Each policy ends with its form, so policy and form stay together.</p><div id="root"></div></main>
+<script>window.page=()=>{const root=document.getElementById("root");
+
+const row=([p,d,f])=>`<div class="card"><h3>${p}</h3><p class="sub">${d||"Add when needed"}</p>${f!=="—"?formLink(f):""}</div>`;
+root.innerHTML=`<h2>Start with five</h2><div class="grid">${D.policies.start.map(row).join("")}</div>
+<h2>Add when needed</h2><div class="grid">${D.policies.later.map(row).join("")}</div>`;
+};</script></body></html>

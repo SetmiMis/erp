@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>People · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>People</h1><p class="sub">One sheet, five tabs.</p><div id="root"></div></main>
+<script>window.page=()=>{const root=document.getElementById("root");
+
+const T=["Contacts","Holidays","Who to ask","Org chart","Birthdays"];
+const [b,t]=tabs(T,n=>({
+ "Contacts":()=>table(["Name","Dept","Ext","Mobile","Email"],D.contacts),
+ "Holidays":()=>table(["Date","Holiday"],D.holidays),
+ "Who to ask":()=>table(["Topic","Person"],D.ask),
+ "Org chart":()=>table(["Role / Team","Reports to"],D.org),
+ "Birthdays":()=>table(["Person","Date","What"],D.birthdays)}[n]()));
+root.append(b,t);
+};</script></body></html>

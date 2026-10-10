@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>Company <em>Intranet.</em></h1><p class="sub">One front door for every system. Internal only.</p><div id="root"></div></main>
+<script>window.page=()=>{const r=document.getElementById("root");
+r.innerHTML=`<div class="banner"><b>Notice</b><br>${D.notice}</div>
+<h2>Quick buttons</h2><div class="grid quick">${D.quick.map(([n,h])=>`<a href="${h}">${n}</a>`).join("")}</div>
+<h2>Rotating notices</h2><div>${D.rotating.map(n=>chip(n)).join("")}</div>
+<h2>About us</h2><div class="card big">Three lines, not three pages. Who we are, what we do, where we work.</div>`;};</script></body></html>

@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Training · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>Training</h1><p class="sub">Self-serve first week.</p><div id="root"></div></main>
+<script>window.page=()=>{const root=document.getElementById("root");
+
+root.innerHTML=`<div class="grid">${D.training.map(([n,d])=>`<div class="card big"><h3>${n}</h3><p class="sub">${d}</p></div>`).join("")}</div>`;
+};</script></body></html>

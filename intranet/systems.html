@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Systems · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>My Systems</h1><p class="sub">Personal to each login. Filtered by whoever is signed in.</p><div id="root"></div></main>
+<script>window.page=()=>{const root=document.getElementById("root");
+
+const emails=[...new Set(D.members.map(m=>m.email))];
+root.innerHTML=`<p>Signed in as (demo): <select id="who">${emails.map(e=>`<option>${e}</option>`).join("")}</select></p><div id="out"></div>
+<div class="note">In Google Sites: Looker Studio embed, filtered by <b>email = viewer</b>, fed by the Members tab. Fed by: Systems Register → Members tab.</div>`;
+const draw=()=>{const e=$("#who").value;const rows=D.members.filter(m=>m.email===e).map(m=>{const s=D.systems.find(x=>x.id===m.sid);
+return [s.name,s.what,chip(m.role,m.role==="Owner"?"o":""),`<a class="btn" href="${s.form}">Form</a><a class="btn" href="${s.sheet}">Sheet</a>`,s.owner,s.status];});
+$("#out").innerHTML=table(["System","What for","Your role","Open","Owner","Status"],rows);};
+$("#who").onchange=draw;draw();
+};</script></body></html>

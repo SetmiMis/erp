@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forms · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>Forms</h1><p class="sub">Every live form, one grid. If it is not here, it does not exist.</p><div id="root"></div></main>
+<script>window.page=()=>{const root=document.getElementById("root");
+
+const names=Object.keys(D.forms);
+root.innerHTML=`<input id="q" placeholder="Search forms…" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:inherit;margin-bottom:8px">`+
+names.map(g=>`<section class="grp" id="${g}"><h2>${g}</h2>${D.forms[g].map(formLink).join("")}</section>`).join("");
+$("#q").oninput=e=>{const v=e.target.value.toLowerCase();document.querySelectorAll(".btn").forEach(b=>b.style.display=b.textContent.toLowerCase().includes(v)?"":"none");};
+};</script></body></html>

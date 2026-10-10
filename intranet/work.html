@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How We Work · Company Intranet</title><link rel="stylesheet" href="assets/style.css">
+<script src="assets/data.js"></script><script src="assets/app.js"></script></head>
+<body><main><h1>How We Work</h1><p class="sub">One sub-page per department. Same layout each time: steps, the form, the sheet, the owner.</p><div id="root"></div></main>
+<script>window.page=()=>{const root=document.getElementById("root");
+
+const T=Object.keys(D.work);const [b,t]=tabs(T,n=>{const w=D.work[n];
+return `<div class="card big"><h3>${n}</h3><p><b>Steps:</b> ${w.flow}</p><p><b>Form:</b> ${formLink(w.form)}</p><p><b>Sheet:</b> <a href="#">${w.sheet}</a></p><p><b>Owner:</b> ${w.owner}</p></div>`;});
+root.append(b,t);
+};</script></body></html>
