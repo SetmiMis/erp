@@ -1,0 +1,21 @@
+<!DOCTYPE html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font:15px/1.5 Arial,sans-serif;margin:0;padding:16px;color:#0f2a3a;border-top:6px solid #005a84}
+h2{margin:0 0 4px}h3{margin:18px 0 6px;font-size:16px}p{color:#5b6785;margin:0 0 12px}
+input{width:100%;padding:10px;border:1px solid #e3e7f2;border-radius:8px;font:inherit;box-sizing:border-box}
+a.b{display:inline-block;margin:4px 6px 4px 0;padding:6px 12px;border-radius:8px;background:#e3f1f8;color:#005a84;text-decoration:none;font-size:13px;font-weight:700}
+a.b:hover{background:#005a84;color:#fff}
+</style></head><body>
+<h2>Forms</h2><p>Every live form, one grid. Fed by the Forms tab of the Systems Register.</p>
+<input id="q" placeholder="Search forms…"><div id="out">Loading…</div>
+<script>
+const e=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+google.script.run.withSuccessHandler(g=>{
+  const ORDER=['HR','Admin','Purchase & Store','Sales & Service','Accounts & IT'];
+  const names=Object.keys(g).sort((a,b)=>(ORDER.indexOf(a)+99)%99-(ORDER.indexOf(b)+99)%99);
+  document.getElementById('out').innerHTML=names.map(n=>`<section><h3>${e(n)}</h3>`+
+    g[n].map(f=>`<a class="b" target="_blank" href="${e(f.link)}">${e(f.name)}</a>`).join('')+`</section>`).join('');
+  document.getElementById('q').oninput=ev=>{const v=ev.target.value.toLowerCase();
+    document.querySelectorAll('a.b').forEach(a=>a.style.display=a.textContent.toLowerCase().includes(v)?'':'none');};
+}).withFailureHandler(x=>document.getElementById('out').textContent='Error: '+x.message).getForms();
+</script></body></html>

@@ -13,7 +13,7 @@ google.script.run.withSuccessHandler(rows=>{
   const link=(u,t)=>u?`<a href="${e(u)}" target="_blank">${t}</a>`:'';
   document.getElementById('out').innerHTML = rows.length
     ? `<table><tr><th>System</th><th>What for</th><th>Your role</th><th>Open</th><th>Owner</th><th>Status</th></tr>`+
-      rows.map(r=>`<tr><td>${e(r.name)}</td><td>${e(r.what)}</td><td><span class="r">${e(r.role)}</span></td><td>${link(r.form,'Form')}${link(r.sheet,'Sheet')}</td><td>${e(r.owner)}</td><td>${e(r.status)}</td></tr>`).join('')+`</table>`
+      rows.map(r=>`<tr><td>${e(r.name)}</td><td>${e(r.what)}</td><td><span class="r">${e(r.role)}</span></td><td>${link(r.form,'Form')}${link(r.sheet,'Sheet')}${link(r.app,'App')}</td><td>${e(r.owner)}</td><td>${e(r.status)}</td></tr>`).join('')+`</table>`
     : 'No systems are assigned to your email yet. Ask the HR owner to add you in the Members tab.';
 }).withFailureHandler(x=>document.getElementById('out').textContent='Error: '+x.message).getMySystems();
 </script></body></html>
